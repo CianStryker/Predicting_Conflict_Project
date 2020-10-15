@@ -18,7 +18,7 @@ library(naniar)
 
 ```
 
-```{r Gathering Wold Bank Data, cache=TRUE}
+```{r Gathering Wold Bank Data}
 
 # new_cache = WDIcache()
 
@@ -88,16 +88,12 @@ hdi_data2$country <- countrycode(hdi_data2$country, "country.name", "country.nam
 hdi_data2 <- hdi_data2 %>%
   filter(country != "NA") 
 
+hdi_data2 <- hdi_data2 %>%
+  replace_with_na(replace = list(hdi = c("..")))
+
 
 Data_Set2 <- left_join(Data_Set, hdi_data2, by = c("country", "year"))
 ```
-
-```{r Making More Excel Data}
-
-write.xlsx(Data_Set2, "Raw_Data/Second_Draft_Data.xlsx")
-
-```
-
 
 ```{r Military Expenditure Data}
 
@@ -145,6 +141,31 @@ colnames(military_imports2)[colnames(military_imports2) == 'value'] <- "military
 # military_imports3 <- military_imports2 %>%
 #   filter(country != "NA")
 
-Data_set4 <- left_join(Data_Set3, military_imports2, by = c("country", "year"))
+Data_Set4 <- left_join(Data_Set3, military_imports2, by = c("country", "year"))
 ```
 
+
+```{r Freedom House}
+
+# Freedom house is red as higher equals less free. 
+
+freedom_house <- read.xlsx("Raw_Data/FOTP1980-FOTP2017_Public-Data.xlsx")
+
+freedom_house <- reshape2::melt(freedom_house, measure.vars = 2:25)%>%
+  clean_names()
+
+colnames(freedom_house)[colnames(freedom_house) == 'variable'] <- "year"
+colnames(freedom_house)[colnames(freedom_house) == 'value'] <- "freedom_index"
+
+freedom_house <- freedom_house %>%
+  replace_with_na(replace = list(freedom_index = c("-"))) 
+
+Data_Set5 <- left_join(Data_Set4, freedom_house, by = c("country", "year"))
+
+```
+
+```{r Making More Excel Data}
+
+write.xlsx(Data_Set5, "Raw_Data/Second_Draft_Data.xlsx")
+
+```
