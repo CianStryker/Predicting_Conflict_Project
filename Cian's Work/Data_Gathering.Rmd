@@ -9,5 +9,50 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 
 library(tidyverse)
+library(WDI)
+library(countrycode)
+library(openxlsx)
+
 ```
+
+```{r Gathering Wold Bank Data, cache=TRUE}
+
+# new_cache = WDIcache()
+
+# WDIsearch('CC BY-4.0')
+
+World_Bank_Data <- WDI(indicator = c("gdp_current_US" = "NY.GDP.MKTP.CD",
+                                     "gdp_per_capita" = "NY.GDP.PCAP.CD",
+                                     "population" = "SP.POP.TOTL",
+                                     "population_growth_rate" = "SP.POP.GROW",
+                                     "infant_mortality" = "SH.DTH.IMRT",
+                                     "unemployment" = "SL.UEM.TOTL.NE.ZS",
+                                     "percent_male_population" = "SP.POP.TOTL.MA.ZS",
+                                     "oil_rent_percent_gdp" = "NY.GDP.PETR.RT.ZS",
+                                     "natural_gas_percent_gdp" = "NY.GDP.NGAS.RT.ZS", 
+                                     "mineral_rent_percent_gdp" = "NY.GDP.MINR.RT.ZS", 
+                                     "natual_resources_rent_percent_gdp" = "NY.GDP.TOTL.RT.ZS"), 
+                       country = "all", start = 1960, extra = FALSE)
+
+World_Bank_Data$country <- countrycode(World_Bank_Data$country, "country.name", "country.name")
+
+
+Data_Set <- World_Bank_Data %>%
+  filter(country != "NA")
+
+Data_Set$continent = Data_Set$country
+
+Data_Set$continent <- countrycode(Data_Set$country, "country.name", "continent")
+
+Data_Set <- Data_Set %>%
+  select(country, iso2c, year, continent, everything())
+
+```
+
+```{r Making Excel Data}
+
+write.xlsx(Data_Set, "Raw_Data/First_Draft_Data.xlsx")
+
+```
+
 
