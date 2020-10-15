@@ -14,6 +14,7 @@ library(countrycode)
 library(readr)
 library(openxlsx)
 library(janitor)
+library(naniar)
 
 ```
 
@@ -88,11 +89,62 @@ hdi_data2 <- hdi_data2 %>%
   filter(country != "NA") 
 
 
-Data_Set2 <- left_join(Data_Set, hdi_data2)
+Data_Set2 <- left_join(Data_Set, hdi_data2, by = c("country", "year"))
 ```
 
 ```{r Making More Excel Data}
 
-write.xlsx(Data_Set, "Raw_Data/Second_Draft_Data.xlsx")
+write.xlsx(Data_Set2, "Raw_Data/Second_Draft_Data.xlsx")
 
 ```
+
+
+```{r Military Expenditure Data}
+
+# Military Sepnding in terms of Current USD (in Millions) 
+
+military_spending <- read.xlsx("Raw_Data/SIPRI-Milex-data-1949-2019.xlsx")
+
+military_spending2 <- reshape2::melt(military_spending, measure.vars = 2:72)%>%
+  clean_names()
+
+colnames(military_spending2)[colnames(military_spending2) == 'variable'] <- "year"
+colnames(military_spending2)[colnames(military_spending2) == 'value'] <- "military_spending"
+
+military_spending2 <- military_spending2 %>%
+  replace_with_na(replace = list(military_spending = c("xxx", ". ."))) 
+
+# military_spending2$country <- countrycode(military_spending2$country, "country.name", "country.name") 
+
+# military_spending2 <- military_spending2 %>%
+#   filter(country != "NA") 
+
+Data_Set3 <- left_join(Data_Set2, military_spending2, by = c("country", "year")) 
+
+Data_Set3$military_spending <- as.numeric(Data_Set3$military_spending)
+
+Data_Set3 <- Data_Set3%>%
+  mutate(military_spending = military_spending * 1000000)
+```
+
+```{r Military Import Data}
+
+military_imports <- read_csv("Raw_Data/TIV-Import-All-1950-2019.csv", col_types = cols(
+  .default = col_double(),
+  country = col_character()
+))
+
+military_imports2 <- reshape2::melt(military_imports, measure.vars = 2:72)%>%
+  clean_names()
+
+colnames(military_imports2)[colnames(military_imports2) == 'variable'] <- "year"
+colnames(military_imports2)[colnames(military_imports2) == 'value'] <- "military_imports_TIV"
+
+# military_imports2$country <- countrycode(military_imports2$country, "country.name", "country.name") 
+
+# military_imports3 <- military_imports2 %>%
+#   filter(country != "NA")
+
+Data_set4 <- left_join(Data_Set3, military_imports2, by = c("country", "year"))
+```
+
