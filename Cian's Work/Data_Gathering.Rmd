@@ -160,7 +160,8 @@ colnames(freedom_house)[colnames(freedom_house) == 'value'] <- "freedom_index"
 freedom_house <- freedom_house %>%
   replace_with_na(replace = list(freedom_index = c("-"))) 
 
-Data_Set5 <- left_join(Data_Set4, freedom_house, by = c("country", "year"))
+Data_Set5 <- left_join(Data_Set4, freedom_house, by = c("country", "year")) %>%
+  filter(year != 2020)
 
 ```
 
