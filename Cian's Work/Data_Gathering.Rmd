@@ -11,7 +11,9 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(WDI)
 library(countrycode)
+library(readr)
 library(openxlsx)
+library(janitor)
 
 ```
 
@@ -55,4 +57,42 @@ write.xlsx(Data_Set, "Raw_Data/First_Draft_Data.xlsx")
 
 ```
 
+```{r Loading in Data}
 
+# It takes way less time to load in data from the excel file
+# than in takes to create the data directly from the World Bank
+
+Data_Set <- read.xlsx("Raw_Data/First_Draft_Data.xlsx") 
+
+Data_Set$year <- as.factor(Data_Set$year)
+```
+
+```{r HDI Data}
+
+hdi_data <- read_csv("Raw_Data/Human Development Index (HDI).csv", col_types = cols(
+                                                                    .default = col_character(),
+                                                                    `HDI Rank (2018)` = col_double()
+                      ))
+
+hdi_data <- hdi_data[,-1]
+
+hdi_data2 <- reshape2::melt(hdi_data, measure.vars = 2:30) %>%
+  clean_names()
+
+colnames(hdi_data2)[colnames(hdi_data2) == 'variable'] <- "year"
+colnames(hdi_data2)[colnames(hdi_data2) == 'value'] <- "hdi"
+
+hdi_data2$country <- countrycode(hdi_data2$country, "country.name", "country.name") 
+
+hdi_data2 <- hdi_data2 %>%
+  filter(country != "NA") 
+
+
+Data_Set2 <- left_join(Data_Set, hdi_data2)
+```
+
+```{r Making More Excel Data}
+
+write.xlsx(Data_Set, "Raw_Data/Second_Draft_Data.xlsx")
+
+```
