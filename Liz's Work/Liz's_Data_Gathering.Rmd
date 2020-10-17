@@ -5,10 +5,64 @@ date: "10/13/2020"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include=FALSE}https://stackoverflow.com/}
 knitr::opts_chunk$set(echo = TRUE)
 
+library(WDI)
+library(countrycode)
+library(readr)
+library(openxlsx)
+library(janitor)
+library(naniar)
 library(tidyverse)
+
 ```
 
+
+```{r Cian's dataset}
+
+# Cians' Second Draft Data
+
+draft_data2 <- read.xlsx("Raw_Data_Liz/Second_Draft_Data.xlsx")
+
+
+#take out 2019 bc polity data ends at 2018 
+
+draft_data2 <-  filter(draft_data2, year != 2019)
+
+
+```
+
+```{r Polity V}
+
+polity <- read_csv("Raw_Data_Liz/p5v2018.csv", col_types = cols(
+  .default = col_double(),
+  scode = col_character(),
+  country = col_character()
+))
+
+draft_data2$year <- as.numeric(draft_data2$year)
+
+polity <- polity %>% 
+          select("country",
+                "year",
+                "fragment", 
+                 "sf",
+                 "change",
+                 "regtrans",
+                 "xrreg",
+                 "xrcomp",
+                 "xropen",
+                 "parreg",
+                 "parcomp") %>% 
+          filter(year >= 1960)
+
+polity <- as.data.frame(polity)
+
+
+Data_Set6 <- merge(x = draft_data2, y = polity, by = c("country", "year"), all = TRUE)
+
+# Data_Set6 <- left_join(draft_data2, polity, by = c("country" , "year")) 
+
+```
 
