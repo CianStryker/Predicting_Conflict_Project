@@ -38,6 +38,8 @@ World_Bank_Data <- WDI(indicator = c("gdp_current_US" = "NY.GDP.MKTP.CD",
                                      "natual_resources_rent_percent_gdp" = "NY.GDP.TOTL.RT.ZS"), 
                        country = "all", start = 1960, extra = FALSE)
 
+WB_original_countries <- data.frame(unique(World_Bank_Data$country))
+
 World_Bank_Data$country <- countrycode(World_Bank_Data$country, "country.name", "country.name")
 
 
@@ -51,9 +53,6 @@ Data_Set$continent <- countrycode(Data_Set$country, "country.name", "continent")
 Data_Set <- Data_Set %>%
   select(country, iso2c, year, continent, everything())
 
-```
-
-```{r Making Excel Data}
 
 write.xlsx(Data_Set, "Raw_Data/First_Draft_Data.xlsx")
 
@@ -91,7 +90,6 @@ hdi_data2 <- hdi_data2 %>%
 
 hdi_data2 <- hdi_data2 %>%
   replace_with_na(replace = list(hdi = c("..")))
-
 
 Data_Set2 <- left_join(Data_Set, hdi_data2, by = c("country", "year"))
 ```
@@ -192,15 +190,16 @@ colnames(HIEF)[colnames(HIEF) == 'Year'] <- "year"
 HIEF$country <- countrycode(HIEF$country, "country.name", "country.name") 
 
 HIEF <- HIEF %>%
-  drop_na(country)
-
-# unique(HIEF$country)
+  drop_na(country) %>%
+  group_by(country, year) %>%
+  unique()
 
 countrylist <- unique(Data_Set5$country)
 
 Data_Set6 <- left_join(Data_Set5 %>% group_by(country) %>% mutate(id = row_number()),
                   HIEF %>% group_by(country) %>% mutate(id = row_number()), 
-                  by = c("country", "year", "id"))
+                  by = c("country", "year", "id")) %>%
+              select(-id)
 
 year_range <- unique(Data_Set5$year)
 
@@ -246,10 +245,16 @@ write.xlsx(Peace2, "Raw_Data/Manual_time.xlsx")
 
 Peace_Changed <- read.xlsx("Raw_Data/Manual_time.xlsx")
 
-
 Peace3 <- setDT(Peace_Changed)[, .(country, year = seq(yearbeg, end_year, by = 1)), 
-          .(grp = 1:nrow(Peace_Changed))][, grp := NULL][]
+          .(grp = 1:nrow(Peace_Changed))][, grp := NULL][] %>%
+  mutate(year = as.factor(year))
 
+countries_Peace <- unique(Peace3$country)
+
+list1 <- 1:1742
+peace_keeping <- rep(1, length(list1))
+
+Peace3 <- data.frame(Peace3, peace_keeping)
 
 year <- rep(year_range, length(countries_Peace))
 country <- rep(countries_Peace, length(year_range))
@@ -262,14 +267,19 @@ Peace_Data2 <- tibble(country) %>%
 Peace_Data3 <- data.frame(Peace_Data2, Peace_Data)
 
 
-
 Peace4 <- left_join(Peace_Data3, Peace3, by = c("country", "year")) %>%
   group_by(country, year) %>%
   unique()
 
 Peace4[is.na(Peace4)] <- 0
 
+Data_Set7 <- left_join(Data_Set6, Peace4, by = c("country", "year"))
 
+```
+
+```{r Newest Version}
+
+write.xlsx(Data_Set7, "Raw_Data/Third_Draft.xlsx")
 
 ```
 
