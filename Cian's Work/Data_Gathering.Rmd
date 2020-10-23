@@ -15,10 +15,11 @@ library(readr)
 library(openxlsx)
 library(janitor)
 library(naniar)
+library(arsenal)
 
 ```
 
-```{r Gathering Wold Bank Data}
+```{r Gathering Wold Bank Data, eval=FALSE}
 
 # new_cache = WDIcache()
 
@@ -170,3 +171,35 @@ Data_Set5 <- left_join(Data_Set4, freedom_house, by = c("country", "year")) %>%
 write.xlsx(Data_Set5, "Raw_Data/Second_Draft_Data.xlsx")
 
 ```
+
+```{r Ethnic Diveristy}
+
+# I'm using the Historical Index of Ethnic Fractionalizaiton dataset.
+
+HIEF <- read_csv("Raw_Data/HIEF_data.csv", col_types = cols(
+  Country = col_character(),
+  Year = col_double(),
+  EFindex = col_double()
+))
+
+HIEF <- HIEF %>%
+  filter(Year >= 1960) %>%
+  mutate(Year = as.factor(Year))
+
+colnames(HIEF)[colnames(HIEF) == 'Country'] <- "country"
+colnames(HIEF)[colnames(HIEF) == 'Year'] <- "year"
+
+HIEF$country <- countrycode(HIEF$country, "country.name", "country.name") 
+
+HIEF <- HIEF %>%
+  drop_na(country)
+
+unique(HIEF$country)
+
+unique(Data_Set5$country)
+
+Data_Set6 <- left_join(Data_Set5, HIEF, by = c("country", "year")) 
+
+summary(comparedf(Data_Set5, Data_Set6))
+```
+
