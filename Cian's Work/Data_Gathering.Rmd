@@ -243,7 +243,7 @@ Peace2 <- Peace2 %>%
 
 write.xlsx(Peace2, "Raw_Data/Manual_time.xlsx")
 
-Peace_Changed <- read.xlsx("Raw_Data/Manual_time.xlsx")
+Peace_Changed <- read.xlsx("Raw_Data/Manual_time_changed.xlsx")
 
 Peace3 <- setDT(Peace_Changed)[, .(country, year = seq(yearbeg, end_year, by = 1)), 
           .(grp = 1:nrow(Peace_Changed))][, grp := NULL][] %>%
@@ -251,7 +251,7 @@ Peace3 <- setDT(Peace_Changed)[, .(country, year = seq(yearbeg, end_year, by = 1
 
 countries_Peace <- unique(Peace3$country)
 
-list1 <- 1:1742
+list1 <- nrow(Peace3)
 peace_keeping <- rep(1, length(list1))
 
 Peace3 <- data.frame(Peace3, peace_keeping)
@@ -266,14 +266,21 @@ Peace_Data2 <- tibble(country) %>%
 
 Peace_Data3 <- data.frame(Peace_Data2, Peace_Data)
 
+Peace4 <- left_join(Peace_Data3, Peace3, by = c("country", "year")) 
 
-Peace4 <- left_join(Peace_Data3, Peace3, by = c("country", "year")) %>%
+Peace4$country <- countrycode(Peace4$country, "country.name", "country.name") 
+
+Peace4 <- Peace4 %>%
+  drop_na(country) %>%
   group_by(country, year) %>%
   unique()
 
 Peace4[is.na(Peace4)] <- 0
 
-Data_Set7 <- left_join(Data_Set6, Peace4, by = c("country", "year"))
+Data_Set7 <- left_join(Data_Set6 %>% group_by(country) %>% mutate(id = row_number()),
+                  Peace4 %>% group_by(country) %>% mutate(id = row_number()), 
+                  by = c("country", "year", "id")) %>%
+              select(-id)
 
 ```
 
