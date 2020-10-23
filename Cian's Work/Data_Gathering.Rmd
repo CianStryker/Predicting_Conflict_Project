@@ -15,7 +15,7 @@ library(readr)
 library(openxlsx)
 library(janitor)
 library(naniar)
-library(arsenal)
+library(data.table)
 
 ```
 
@@ -194,12 +194,82 @@ HIEF$country <- countrycode(HIEF$country, "country.name", "country.name")
 HIEF <- HIEF %>%
   drop_na(country)
 
-unique(HIEF$country)
+# unique(HIEF$country)
 
-unique(Data_Set5$country)
+countrylist <- unique(Data_Set5$country)
 
-Data_Set6 <- left_join(Data_Set5, HIEF, by = c("country", "year")) 
+Data_Set6 <- left_join(Data_Set5 %>% group_by(country) %>% mutate(id = row_number()),
+                  HIEF %>% group_by(country) %>% mutate(id = row_number()), 
+                  by = c("country", "year", "id"))
 
-summary(comparedf(Data_Set5, Data_Set6))
+year_range <- unique(Data_Set5$year)
+
+```
+
+```{r Peacekeeping Data}
+
+Peace <- read_csv("Raw_Data/MILINDA-v1-March2019.csv", col_types = cols(
+  .default = col_character(),
+  caseid = col_double(),
+  hcons = col_double(),
+  yearbeg = col_double(),
+  yearbeg_n = col_double(),
+  duram_n = col_double(),
+  person_n = col_double(),
+  status_n2 = col_double(),
+  ch7_n = col_double(),
+  srcadis = col_double(),
+  srcadis_n = col_double(),
+  srctpi = col_double(),
+  srctpi_n = col_double(),
+  srcsipr_n = col_double(),
+  bef1992a = col_double()
+))
+
+Peace <- Peace %>%
+  select(country, yearbeg, yearend)
+
+Peace$yearend[Peace$yearend == "ongoing"] <- 2018
+
+end_year <- parse_number(Peace$yearend)
+
+Peace2 <- data.frame(Peace, end_year) %>%
+    select(!yearend)
+
+Peace2$yearbeg <- as.double(Peace2$yearbeg)
+Peace2$end_year <- as.double(Peace2$end_year)
+
+Peace2 <- Peace2 %>%
+  filter(yearbeg >= 1960)
+
+write.xlsx(Peace2, "Raw_Data/Manual_time.xlsx")
+
+Peace_Changed <- read.xlsx("Raw_Data/Manual_time.xlsx")
+
+
+Peace3 <- setDT(Peace_Changed)[, .(country, year = seq(yearbeg, end_year, by = 1)), 
+          .(grp = 1:nrow(Peace_Changed))][, grp := NULL][]
+
+
+year <- rep(year_range, length(countries_Peace))
+country <- rep(countries_Peace, length(year_range))
+
+
+Peace_Data <- data.frame(year)
+Peace_Data2 <- tibble(country) %>%
+  arrange(country)
+
+Peace_Data3 <- data.frame(Peace_Data2, Peace_Data)
+
+
+
+Peace4 <- left_join(Peace_Data3, Peace3, by = c("country", "year")) %>%
+  group_by(country, year) %>%
+  unique()
+
+Peace4[is.na(Peace4)] <- 0
+
+
+
 ```
 
