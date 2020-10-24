@@ -1,0 +1,18 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+Countries in Polity that aren't in third_draft: 
+
+
+ [1] "Bosnia"                "Congo-Brazzaville"     "Congo Brazzaville"    
+ [4] "Congo Kinshasa"        "Cote D'Ivoire"         "Czech Republic"       
+ [7] "Czechoslovakia"        "Germany East"          "Germany West"         
+[10] "Ivory Coast"           "Korea North"           "Korea South"          
+[13] "Macedonia"             "Serbia and Montenegro" "Slovak Republic"      
+[16] "South Vietnam"         "Sudan-North"           "Swaziland"            
+[19] "Taiwan"                "Timor Leste"           "Trinidad and Tobago"  
+[22] "UAE"                   "USSR"                  "Vietnam North"        
+[25] "Yemen North"           "Yemen South"           "Yugoslavia"     
