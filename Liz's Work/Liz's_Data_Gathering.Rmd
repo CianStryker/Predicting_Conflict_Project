@@ -231,10 +231,30 @@ conflict_2 <- conflict %>%
   # limit to INTRASTATE ONLY (bc scope of project and also to avoid dyads) 
             filter(type_of_conflict != "2") %>% 
             filter(year >= 1960) %>% 
-            rename("country" = "location")
-  
-  # There's 104 countries that experienced some sort of intrastate conflict between 1960 and 2019
-
+            rename("country" = "location") %>% 
+            mutate(recode_incompatibility = recode_factor(incompatibility, 
+                                                          "1" = "conflict_territory",
+                                                          "2" = "conflict_gov", 
+                                                          "3" = "conflict_terr_gov")) %>% 
+            mutate(recode_conflict = recode_factor(type_of_conflict, 
+                                                   "1" = "extrasystemic",
+                                                   "3" = "intrastate",
+                                                   "4" = "intl_intrastate")) %>% 
+            mutate(recode_intensity = recode_factor(intensity_level, 
+                                                    "1" = "low", 
+                                                    "2" = "high")) %>% 
+            select(-incompatibility, -type_of_conflict, -intensity_level) %>% 
+            dummy_cols(select_columns = c("recode_incompatibility", "recode_conflict", "recode_intensity")) %>% 
+            select(-recode_incompatibility, -recode_conflict, -recode_intensity) %>% 
+            rename("incompatible_territory" = "recode_incompatibility_conflict_territory",
+                   "incompatible_gov" = "recode_incompatibility_conflict_gov",
+                   "incompatible_both" = "recode_incompatibility_conflict_terr_gov",
+                   "extrasystemic" = "recode_conflict_extrasystemic",
+                   "intrastate" = "recode_conflict_intrastate",
+                   "intl_intrastate" = "recode_conflict_intl_intrastate", 
+                   "intensity_low" = "recode_intensity_low",
+                   "intensity_high" = "recode_intensity_high")
+                    
 
 ```
 
@@ -244,236 +264,10 @@ conflict_2 <- conflict %>%
 
 fourth_draft_data <- merge(x = three_point_five, y = conflict_2, by = c("country", "year"), all = TRUE)
 
-
-# add dummy conflict variable 
-
-fourth_draft <- fourth_draft_data %>%
-                mutate(is_conflict = ifelse(type_of_conflict == "NA", 0, 1))
-
-# didn't return 0's for NA values in is_conflict so try again 
-
-fourth_draft$is_conflict[is.na(fourth_draft$is_conflict)] <- 0
-  
-write_fourth <- write_csv(fourth_draft, path = "Raw_Data_Liz/fourth_draft.csv")
+fourth_final <- write_csv(fourth_draft_data, path = "Raw_Data_Liz/fourth_final.csv")
 
 
-
+x <-fourth_final %>% 
+    filter(country == "Afghanistan") %>% 
+    filter(year == "2015")
 ```
-
-=======
----
-title: "Liz's Data Gathering"
-author: "Liz Masten"
-date: "10/13/2020"
-output: html_document
----
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-
-library(WDI)
-library(countrycode)
-library(readr)
-library(openxlsx)
-library(janitor)
-library(naniar)
-library(forcats)
-library(fastDummies)
-library(tidyverse)
-
-```
-
-
-```{r Cian dataset}
-
-# Cians' Second Draft Data
-
-third_draft <- read.xlsx("Raw_Data_Liz/Third_Draft.xlsx")
-
-
-```
-
-```{r Polity V}
-
-polity <- read_csv("Raw_Data_Liz/p5v2018.csv", col_types = cols(
-  .default = col_double(),
-  scode = col_character(),
-  country = col_character()
-))
-
-third_draft$year <- as.numeric(third_draft$year)
-
-polity <- polity %>% 
-          select("country",
-                "year",
-                "fragment", 
-                 "sf",
-                 "change",
-                 "regtrans",
-                 "xrreg",
-                 "xrcomp",
-                 "xropen",
-                 "parreg",
-                 "parcomp") %>% 
-          filter(year >= 1960)
-
-polity <- as.data.frame(polity)
-
-
-third_draft_polity <- merge(x = third_draft, y = polity, by = c("country", "year"), all = TRUE)
-
-
-```
-
-```{r}
-
-# third_draft_polity has 27 more countries corresponding to 905 rows. See extra_co.rmd for list of countries. 
-
-extra_countries_pol <- third_draft_polity[!third_draft_polity$country%in%third_draft$country,]
-
-# Some should be renamed, others will likely be dropped. 
-
-```
-
-
-```{r}
-
-gtd <- read_csv("Raw_Data_Liz/gtd.csv")
-
-gtd_2 <- gtd %>% 
-       select(country, country_txt, iyear, targtype1, nkill, nwound) %>% 
-       select(!country) %>% 
-       rename(country = country_txt,
-              year = iyear)
-
-```
-
-```{r}
-
-# recode tergtype1: 
-
-gtd_2$targtype1 <- as.factor(gtd_2$targtype1)
-
-
-gtd_recode <- gtd_2 %>% 
-              filter(targtype1 != 13) %>%  #13 and 20 are other and unk, respectively 
-              filter(targtype1 != 20) %>% 
-              mutate(recode_target1 = recode_factor(targtype1,
-                                             "1" = "nonstate_target",   #businesses    
-                                             "2" = "state_target",      #government(general)
-                                             "3" = "state_target",      #police
-                                             "4" = "state_target",      #military
-                                             "5" = "nonstate_target",   #abortion-related
-                                             "6" = "nonstate_target",   #airports, aircraft*
-                                             "7" = "state_target",      #government(diplomats)
-                                             "8" = "nonstate_target",   #edu institutions 
-                                             "9" = "nonstate_target",   #food or water supply
-                                             "10" = "nonstate_target",  #journalists/ media 
-                                             "11" = "nonstate_target",  #maritime*
-                                             "12" = "state_target",     #NGO
-                                             "14" = "nonstate_target",  #private citizens/ property
-                                             "15" = "nonstate_target",  #religious figures/ institutions
-                                             "16" = "nonstate_target",  #telecommunications*
-                                             "17" = "nonstate_target",  #terrorists/ non-state militias
-                                             "18" = "nonstate_target",  #tourists 
-                                             "19" = "nonstate_target",  #transportation 
-                                             "21" = "nonstate_target",  #utilities*
-                                             "22" = "state_target"      #violent political parties
-                                             )) %>% 
-              dummy_cols(select_columns = "recode_target1") %>% 
-              select(-targtype1, -recode_target1, -recode_target1_13, -recode_target1_20) %>% 
-              group_by(year, country) %>% 
-              mutate(terrorism_kill = sum(nkill)) %>% 
-              mutate(terrorism_wound = sum(nwound)) %>% 
-              mutate(nonstate_target = sum(recode_target1_nonstate_target)) %>% 
-              mutate(state_target = sum(recode_target1_state_target)) %>% 
-              select(-nkill, -nwound, -recode_target1_nonstate_target, -recode_target1_state_target) %>% 
-              distinct(country, year, .keep_all = TRUE)
-
-
-  
-```
-
-
-
-```{r}
-
-# the countries don't match up. GTD has 205 unique country entries and our dataset so far has 217. 
-
-# extra_countries <- Data_Set6[!Data_Set6$country%in%gtd_2$country,]
-
-# find <- extra_countries %>% select(country) %>% 
-       # group_by(country) %>% 
-        #unique()
-
-
-
-# Rename the countries from gtd_2.
-
-# gtd_2 <- gtd_2 %>% 
-  #          mutate(country = recode(country, "Antigua and Barbuda" = "Antigua & Barbuda",
-   #                                     "Bosnia-Herzegovina" = "Bosnia & Herzegovina", 
-    #                                    "Congo (Kinshasa)" = "Congo - Kinshasa", 
-     #                                   "Congo (Brazzaville" = "Congo - Brazzaville",
-      #                                  "Ivory Coast" = "Côte d’Ivoire",
-       #                                 "Hong Kong" = "Hong Kong SAR China", 
-        #                                "St. Kitts and Nevis" = "St. Kitts & Nevis",
-         #                               #asterisk? 
-          #                              "Liechtenstein*" = "Liechtenstein", 
-           #                             "Marshall Islands*" = "Marshall Islands",
-            #                            #what? 
-             #                           "Macedonia" = "North Macedonia", 
-              #                          "Myanmar" = "Myanmar (Burma)", 
-               #                         "Mongolia*" = "Mongolia", 
-                #                        "Oman*" = "Oman", 
-                 #                       "East Timur" = "Timor-Leste", 
-                  #                      "Tonga*" = "Tonga",
-                   #                     "Trinidad and Tobago" = "Trinidad & Tobago",
-                    #                    "Tuvalu*" = "Tuvalu", 
-                     #                   "Virgin Islands (U.S.)*" = "U.S. Virgin Islands",
-                      #                  "Greenland*" = "Greenland"
-                       #                 ))
-
-
-# Not included in GTD but included in Data_Set6 AFTER rename:
-
-#American Samoa, Samoa, Aruba, Bermuda, Cape Verde, Curaçao, Micronesia, Faroe Islands, Gibraltar, Guam, Isle of Man, Channel Islands, Kiribati, Cayman Islands, Monaco, Saint Martin (French part), 	Macao SAR China, Northern Mariana Islands, Nauru, Puerto Rico, 	San Marino, São Tomé & Príncipe, Sint Maarten, Eswatini, 	Turks & Caicos Islands, St. Vincent & Grenadines, British Virgin Islands (28 total). 
-
-```
-
-
-```{r}
-
-# now let's try the other way around: 
-
-# extra_countries_reverse <- gtd_2[!gtd_2$country%in%Data_Set6$country,]
-
-# these are countries in the gtd dataset not in Data_Set6: 
-
-# find_reverse <- extra_countries_reverse %>% select(country) %>% 
-  #      group_by(country) %>% 
-   #     unique()
-
-#find countries in Data_Set6 again 
-
-# cos_ds6 <- Data_Set6 %>% select("country") %>% group_by("counry") %>% unique()
-
-
-```
-
-```{r}
-
-# combine the countries I can from gtd: 
-
-
-three_point_five <- merge(x = third_draft_polity, y = gtd_recode, by = c("country", "year"), all = TRUE)
-
-
-write <- write_csv(three_point_five, path = "Raw_Data_Liz/three_point_five.csv")
-
-
-
-```
-
-
->>>>>>> cb56f81e0bf42af602de96de0ea9d28be5483509
