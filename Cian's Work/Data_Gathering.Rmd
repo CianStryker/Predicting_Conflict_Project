@@ -280,6 +280,9 @@ Peace_Data2 <- tibble(country) %>%
 
 Peace_Data3 <- data.frame(Peace_Data2, Peace_Data)
 
+Peace_Data3[Peace_Data3 == "Western Sahara Morocco"] <- "Morocco"
+
+
 Peace4 <- left_join(Peace_Data3, Peace3, by = c("country", "year")) 
 
 Peace4$country <- countrycode(Peace4$country, "country.name", "country.name") 
@@ -304,7 +307,7 @@ write.xlsx(Data_Set7, "Raw_Data/Third_Draft.xlsx")
 
 ```
 
-```{r All predictors data}
+```{r All predictors data, eval=FALSE}
 
 All_p_Data <- read_csv("Raw_Data/fourth_final.csv", col_types = cols(
   .default = col_double(),
