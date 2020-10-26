@@ -156,8 +156,14 @@ freedom_house <- reshape2::melt(freedom_house, measure.vars = 2:25)%>%
 colnames(freedom_house)[colnames(freedom_house) == 'variable'] <- "year"
 colnames(freedom_house)[colnames(freedom_house) == 'value'] <- "freedom_index"
 
+# Freedom house is giving scores to "Serbia and Montenegro" which was a country
+# that did not exist yet. I'm giving those values to Yugoslavia instead. 
+
 freedom_house <- freedom_house %>%
-  replace_with_na(replace = list(freedom_index = c("-"))) 
+  replace_with_na(replace = list(freedom_index = c("-"))) %>%
+  filter(country != "Yugoslavia")
+
+freedom_house[freedom_house == "Serbia and Montenegro"] <- "Yugoslavia"
 
 Data_Set5 <- left_join(Data_Set4, freedom_house, by = c("country", "year")) %>%
   filter(year != 2020)
@@ -180,9 +186,17 @@ HIEF <- read_csv("Raw_Data/HIEF_data.csv", col_types = cols(
   EFindex = col_double()
 ))
 
+# So this dataset differentiated between North and South Vietnam
+# but since we're merging them elsewhere, I removed South Vietnam
+# and kept North Vietnam for our Vietnam data. 
+
 HIEF <- HIEF %>%
   filter(Year >= 1960) %>%
-  mutate(Year = as.factor(Year))
+  mutate(Year = as.factor(Year)) %>%
+  filter(Country != "Republic of Vietnam")
+
+HIEF[HIEF == "Democratic Republic of Vietnam"] <- "Vietnam"
+
 
 colnames(HIEF)[colnames(HIEF) == 'Country'] <- "country"
 colnames(HIEF)[colnames(HIEF) == 'Year'] <- "year"
@@ -287,6 +301,20 @@ Data_Set7 <- left_join(Data_Set6 %>% group_by(country) %>% mutate(id = row_numbe
 ```{r Newest Version}
 
 write.xlsx(Data_Set7, "Raw_Data/Third_Draft.xlsx")
+
+```
+
+```{r All predictors data}
+
+All_p_Data <- read_csv("Raw_Data/fourth_final.csv", col_types = cols(
+  .default = col_double(),
+  country = col_character(),
+  iso2c = col_character(),
+  continent = col_character()
+))
+
+
+All_p_Data$peace_keeping[is.na(All_p_Data$peace_keeping)] <- 0
 
 ```
 
