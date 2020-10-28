@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 ---
 title: "Liz's Data Gathering"
 author: "Liz Masten"
@@ -91,7 +92,7 @@ gtd_2 <- gtd %>%
 
 ```{r}
 
-# recode tergtype1: 
+# recode targtype1: 
 
 gtd_2$targtype1 <- as.factor(gtd_2$targtype1)
 
@@ -224,37 +225,22 @@ conflict <- read_csv("Raw_Data_liz/ucdp-prio-acd-201.csv")
 
 conflict_2 <- conflict %>% 
               select('location',
-                     'incompatibility',
                      'year',
-                     'intensity_level',
+                     'intensity_level', 
                      'type_of_conflict') %>% 
-  # limit to INTRASTATE ONLY (bc scope of project and also to avoid dyads) 
-            filter(type_of_conflict != "2") %>% 
-            filter(year >= 1960) %>% 
-            rename("country" = "location") %>% 
-            mutate(recode_incompatibility = recode_factor(incompatibility, 
-                                                          "1" = "conflict_territory",
-                                                          "2" = "conflict_gov", 
-                                                          "3" = "conflict_terr_gov")) %>% 
-            mutate(recode_conflict = recode_factor(type_of_conflict, 
-                                                   "1" = "extrasystemic",
-                                                   "3" = "intrastate",
-                                                   "4" = "intl_intrastate")) %>% 
-            mutate(recode_intensity = recode_factor(intensity_level, 
-                                                    "1" = "low", 
-                                                    "2" = "high")) %>% 
-            select(-incompatibility, -type_of_conflict, -intensity_level) %>% 
-            dummy_cols(select_columns = c("recode_incompatibility", "recode_conflict", "recode_intensity")) %>% 
-            select(-recode_incompatibility, -recode_conflict, -recode_intensity) %>% 
-            rename("incompatible_territory" = "recode_incompatibility_conflict_territory",
-                   "incompatible_gov" = "recode_incompatibility_conflict_gov",
-                   "incompatible_both" = "recode_incompatibility_conflict_terr_gov",
-                   "extrasystemic" = "recode_conflict_extrasystemic",
-                   "intrastate" = "recode_conflict_intrastate",
-                   "intl_intrastate" = "recode_conflict_intl_intrastate", 
-                   "intensity_low" = "recode_intensity_low",
-                   "intensity_high" = "recode_intensity_high")
-                    
+  #to get rid of dyads. 
+              filter(type_of_conflict != "2") %>% 
+              rename("country" = "location") %>% 
+  #TRUE/TRUE just to sum more easily later. No value in TRUE/TRUE. 
+              mutate(recode_intensity = recode_factor(intensity_level,
+                                                      "1" = "TRUE",
+                                                      "2" = "TRUE")) %>%
+              mutate(n_conflict = ifelse(recode_intensity =="TRUE", 1, 0)) %>% 
+              select(-intensity_level, -recode_intensity, -type_of_conflict) %>% 
+              group_by(country, year) %>% 
+              summarise(n_conflict = sum(n_conflict))
+
+  
 
 ```
 
@@ -264,10 +250,142 @@ conflict_2 <- conflict %>%
 
 fourth_draft_data <- merge(x = three_point_five, y = conflict_2, by = c("country", "year"), all = TRUE)
 
-fourth_final <- write_csv(fourth_draft_data, path = "Raw_Data_Liz/fourth_final.csv")
-
-
-x <-fourth_final %>% 
-    filter(country == "Afghanistan") %>% 
-    filter(year == "2015")
 ```
+
+```{r}
+
+#rename problem countries 
+
+rename_fourth_data <- fourth_draft_data %>% 
+                      mutate(country = recode(country,
+                            "Bosnia-Herzegovina" = "Bosnia & Herzegovina",     
+                            "Cambodia (Kampuchea)" = "Cambodia",
+                            "Madagascar (Malagasy)" = "Madagascar",   
+                            "Russia (Soviet Union)" = "Russia",
+                          #  "Serbia (Yugoslavia)" = "Yugoslavia"
+                            "North Vietnam" = "Vietnam",
+                            "South Vietnam" = "Vietnam",        
+                            "Trinidad and Tobago" = "Trinidad & Tobago",    
+                            "Vietnam (North Vietnam)" = "Vietnam",
+                            "Vietnam (South Vietnam)" = "Vietnam",
+                            "Vietnam North" = "Vietnam",
+                            "Vietnam South" = "Vietnam",
+                            "Yemen (North Yemen)" = "Yemen",
+                            "South (South Yemen)" = "Yemen",
+                            "North Yemen" = "Yemen",
+                            "South Yemen" = "Yemen", 
+                            "Yemen North" = "Yemen",
+                            "Yemen South" = "Yemen",
+                            "Zimbabwe (Rhodesia)" = "Zimbabwe",
+                            "West Bank and Gaza Strip" = "Palestinian Territories",
+                            "Zaire" = "Congo - Kinshasa",
+                            "Democratic Republic of the Congo" = "Congo - Kinshasa",
+                            "DR Congo (Zaire)" = "Congo - Kinshasa", 
+                            "Congo Kinshasa" = "Congo - Kinshasa",
+                            "Congo Brazzaville" = "Congo - Brazzaville", 
+                            "People's Republic of the Congo" = "Congo - Brazzaville",
+                            "Republic of the Congo" = "Congo - Brazzaville",
+                            "Congo-Brazzaville" = "Congo - Brazzaville",
+                            "Rhodesia" = "Zimbabwe", 
+                            "Western Sahara" = "Morocco",
+                            "Swaziland" = "Eswatini",
+                            "Czech Republic" = "Czechia",
+                            "Macau" = "Macao SAR China",
+                            "East Timor" = "Timor - Leste",
+                            "Timor Leste" = "Timor - Leste",
+                            "Côte d’Ivoire" = "Ivory Coast",
+                            "Cote D'Ivoire" = "Ivory Coast",
+                            "Antigua and Barbuda" = "Antigua & Barbuda",
+                            "Hong Kong" = "Hong Kong SAR China",
+                            "Myanmar" = "Myanmar (Burma)",
+                            "Korea South" = "South Korea",
+                            "Korea North" = "North Korea",
+                            "St. Kitts and Nevis" = "St. Kitts & Nevis",
+                            "UAE" = "United Arab Emirates",
+                            "United States of America" = "United States",
+                          #this doubles with Sudan starting in 2011 
+                            "Sudan-North" = "Sudan",
+                            "Slovak Republic" = "Slovakia",
+                            "Bosnia" = "Bosnia & Herzegovina",
+                            "Serbia-Montenegro" = "Serbia and Montenegro"
+                            )) %>% 
+                      group_by(country, year)
+
+# check to make sure all countries are changed 
+
+ex_co <- rename_fourth_data[!rename_fourth_data$country%in%fourth_draft_data$country,]
+
+find <- ex_co %>% select(country) %>% 
+        group_by(country) %>% 
+        unique()
+
+view(rename_fourth_data %>% 
+       filter(country == "Yemen")) %>% 
+  filter(year == "1964")
+
+
+
+```
+
+```{r}
+
+# remove countries
+
+rename_remove_fourth_data <- rename_fourth_data %>% 
+                             filter(!country %in% c("Congo",
+                                                "East Germany (GDR)",
+                                                "West Germany (FRG)",
+                                                "Germany East",
+                                                "Germany West",
+                                                "Taiwan",
+                                                "Soviet Union",
+                                                "New Hebrides",
+                                                "Guadeloupe",
+                                                "Martinique",
+                                                "Vatican City",
+                                                "French Guiana",
+                                                "Falkland Islands",
+                                                "Wallis and Futuna",
+                                                "U.S. Virgin Islands",
+                                                "Faroe Islands",
+                                                "Vanuatu",
+                                                "Channel Islands",
+                                                "American Samoa",
+                                                "British Virgin Islands",
+                                                "Cayman Islands",
+                                                "Curaçao",
+                                                "French Polynesia",
+                                                "Gibraltar", 
+                                                "Guam",
+                                                "Hyderabad",
+                                                "International",
+                                                "Isle of Man",
+                                                "Mauritania, Morocco",
+                                                "New Caledonia",
+                                                "Northern Mariana Islands",
+                                                "Saint Martin (French part)",
+                                                "Sint Maarten",
+                                                "Solomon Islands",
+                                                "Turks & Caicos Islands",
+                                                "Puerto Rico",
+                                                "USSR",
+                                                "Soviet Union"
+                                                ))
+
+unique(rename_remove_fourth_data$country)
+
+#  "Serbia"                        "Serbia (Yugoslavia)"              Yugoslavia
+#Czechoslovakia
+
+```
+
+
+
+```{r}
+
+#write final dataset 
+
+fourth_final <- write_csv(rename_fourth_data, path = "Raw_Data_Liz/fourth_final.csv")
+
+```
+
