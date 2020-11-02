@@ -302,7 +302,7 @@ Data_Set7 <- left_join(Data_Set6 %>% group_by(country) %>% mutate(id = row_numbe
 ```
 ```{r}
 Bad_Countries <- Data_Set7 %>%
-  filter(country %in% c("Czechia", "Slovakia", "Czechoslovakia", "Yugoslavia", "Serbia", "Serbia and Montenegro", "Slovenia", "Croatia", "Bosnia & Herzegovina", "Kosovo", "Montenegro", "North Macedonia"))
+  filter(country %in% c("Czechia", "Slovakia", "Czechoslovakia", "Yugoslavia", "Serbia", "Serbia and Montenegro", "Slovenia", "Croatia", "Bosnia & Herzegovina", "Kosovo", "Montenegro", "North Macedonia", "Sudan", "South Sudan"))
 
 write.xlsx(Bad_Countries, "Raw_Data/Problem_Cases.xlsx")
 
