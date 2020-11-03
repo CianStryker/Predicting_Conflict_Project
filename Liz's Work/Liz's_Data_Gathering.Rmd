@@ -186,8 +186,6 @@ gtd_recode <- gtd_2 %>%
 
 ```{r}
 
-# now let's try the other way around: 
-
 # extra_countries_reverse <- gtd_2[!gtd_2$country%in%Data_Set6$country,]
 
 # these are countries in the gtd dataset not in Data_Set6: 
@@ -383,9 +381,40 @@ unique(rename_remove_fourth_data$country)
 
 ```{r}
 
-#write final dataset 
+#write fourth dataset 
 
-fourth_final <- write_csv(rename_fourth_data, path = "Raw_Data_Liz/fourth_final.csv")
+fourth_final <- write_csv(rename_remove_fourth_data, path = "Raw_Data_Liz/fourth_final.csv")
+
+fourth_final$n_conflict <- as.numeric(fourth_final$n_conflict)
+
+fourth_final$n_conflict[is.na(fourth_final$n_conflict)] = 0
+
+ff <- fourth_final %>% mutate(n_conflict = sum(n_conflict))
+
+# combine unique country/year observations into one observation:  
+
+ff_2 <- ff %>%
+  group_by(country, year) %>%
+  fill(everything(), .direction = "down") %>%
+  fill(everything(), .direction = "up") %>%
+  slice(1)
+
+# this is one observation per country per year: 
+
+ff_2
+
+# spot check for weirdness: 
+
+check_1 <- ff_2 %>% filter(country == "Sudan") #looks ok 
+
+check_2 <- ff_2 %>% filter(country == "Yemen") #looks ok 
+
+check_3 <- ff_2 %>% filter(country == "Germany") #n_conflicts are all 0 
+
+# write fifth dataset
+
+fifth <- write_csv(ff_2, path = "Raw_Data_Liz/fifth.csv")
+
 
 ```
 
