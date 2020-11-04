@@ -300,13 +300,7 @@ Data_Set7 <- left_join(Data_Set6 %>% group_by(country) %>% mutate(id = row_numbe
               select(-id)
 
 ```
-```{r}
-Bad_Countries <- Data_Set7 %>%
-  filter(country %in% c("Czechia", "Slovakia", "Czechoslovakia", "Yugoslavia", "Serbia", "Serbia and Montenegro", "Slovenia", "Croatia", "Bosnia & Herzegovina", "Kosovo", "Montenegro", "North Macedonia", "Sudan", "South Sudan"))
 
-write.xlsx(Bad_Countries, "Raw_Data/Problem_Cases.xlsx")
-
-```
 
 ```{r Newest Version}
 
@@ -314,9 +308,9 @@ write.xlsx(Data_Set7, "Raw_Data/Third_Draft.xlsx")
 
 ```
 
-```{r All predictors data, eval=FALSE}
+```{r All predictors data}
 
-All_p_Data <- read_csv("Raw_Data/fourth_final.csv", col_types = cols(
+All_p_Data <- read_csv("Raw_Data/fifth.csv", col_types = cols(
   .default = col_double(),
   country = col_character(),
   iso2c = col_character(),
@@ -325,6 +319,33 @@ All_p_Data <- read_csv("Raw_Data/fourth_final.csv", col_types = cols(
 
 
 All_p_Data$peace_keeping[is.na(All_p_Data$peace_keeping)] <- 0
+
+new_country_list <- unique(All_p_Data$country)
+
+```
+
+```{r}
+
+Bad_Countries <- All_p_Data %>%
+  filter(country %in% c("Czechia", "Slovakia", "Czechoslovakia", "Yugoslavia", "Serbia", "Serbia (Yugoslavia)", "Serbia and Montenegro", "Slovenia", "Croatia", "Bosnia & Herzegovina", "Kosovo", "Montenegro", "North Macedonia", "Sudan", "South Sudan"))
+
+write.xlsx(Bad_Countries, "Raw_Data/Problem_Cases.xlsx")
+
+My_countries <- Bad_Countries %>%
+  filter(country %in% c("Yugoslavia", "Serbia", "Serbia (Yugoslavia)", "Serbia and Montenegro", "Slovenia", "Croatia", "Bosnia & Herzegovina", "Kosovo", "Montenegro", "North Macedonia"))
+
+write.xlsx(My_countries, "Raw_Data/Yugoslavia.xlsx")
+
+```
+
+```{r}
+
+Final_Data <- read_csv("Raw_Data/Final_Data.csv", col_types = cols(
+  .default = col_double(),
+  country = col_character(),
+  iso2c = col_character(),
+  continent = col_character()
+))
 
 ```
 
