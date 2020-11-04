@@ -399,10 +399,6 @@ ff_2 <- ff %>%
   fill(everything(), .direction = "up") %>%
   slice(1)
 
-# this is one observation per country per year: 
-
-ff_2
-
 # spot check for weirdness: 
 
 check_1 <- ff_2 %>% filter(country == "Sudan") #looks ok 
@@ -411,10 +407,55 @@ check_2 <- ff_2 %>% filter(country == "Yemen") #looks ok
 
 check_3 <- ff_2 %>% filter(country == "Germany") #n_conflicts are all 0 
 
+```
+
+```{r}
+
+#fix Czechoslovakia and Sudans: 
+
+
+```
+
+
+```{r}
+
 # write fifth dataset
 
 fifth <- write_csv(ff_2, path = "Raw_Data_Liz/fifth.csv")
 
+```
+
+```{r}
+
+# In Excel: deleted South Sudan pre 2011
+# Deleted 4 instances of Serbia (Yugoslavia) bc no meaningful data
+# Combined data for Czechia and Slovakia between 1960-1992 into Czechoslovakia; deleted those observations before 1992
+# Last observation for Czechoslovakia is 1992; other two start at 1993 
+
+# read in changes: 
+
+six <- read_csv("Raw_Data_Liz/sixth.csv", col_types = cols(
+  .default = col_double(),
+  country = col_character(),
+  iso2c = col_character(),
+  continent = col_character()
+))
+
+# get rid of random years before 1960
+
+six_2 <- six %>% 
+         filter(year >= 1960)
+
 
 ```
+
+```{r}
+
+# write sixth dataset
+
+sixth_final <- write_csv(six_2, path = "Raw_Data_Liz/sixth_final.csv")
+
+```
+
+
 
