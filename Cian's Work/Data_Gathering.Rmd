@@ -340,7 +340,7 @@ write.xlsx(My_countries, "Raw_Data/Yugoslavia.xlsx")
 
 ```{r}
 
-Final_Data <- read_csv("Raw_Data/Final_Data.csv", col_types = cols(
+Final_Data <- read_csv("Final_Data/Final_Data.csv", col_types = cols(
   .default = col_double(),
   country = col_character(),
   iso2c = col_character(),

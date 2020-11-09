@@ -1,0 +1,40 @@
+---
+title: "Modelling"
+author: "Cian Stryker"
+date: "11/9/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+
+library(readr)
+library(tidyverse)
+library(stats)
+```
+
+```{r Load in Final Data}
+
+Final_Data <- read_csv("Final_Data/Final_Data.csv", col_types = cols(
+  .default = col_double(),
+  country = col_character(),
+  iso2c = col_character(),
+  continent = col_character()
+))
+
+```
+
+```{r Regression}
+
+Model_1 <- lm(data = Final_Data, n_conflict ~.)
+
+```
+
+```{r Ridge Regression}
+
+```
+
+```{r Random Forest}
+
+```
+
