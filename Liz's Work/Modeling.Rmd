@@ -68,11 +68,20 @@ dummy_data <- data %>%
               dummy_cols(select_columns = c("country"),
                         remove_selected_columns = TRUE, remove_first_dummy = TRUE)
 
-imp_mf <- missForest(dummy_data, variablewise = TRUE, verbose = TRUE, ntree = 50) 
+imp_mf <- missForest(dummy_data, variablewise = TRUE, verbose = TRUE, ntree = 100) 
 
 # OOB imputation error est: 
 
 imp_mf$OOBerror
+
+# here's the data frame
+
+# sf had too many missing values to impute meaningfully, so I took it out 
+
+imp_df <- imp_mf$ximp %>% select(-sf)
+
+imputed_data <- write_csv(imp_df, path = "Raw_Data_Liz/imputed_data.csv")
+
 
 ```
 
