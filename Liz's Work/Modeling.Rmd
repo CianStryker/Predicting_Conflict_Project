@@ -58,37 +58,21 @@ sort(p_missing[p_missing > 0], decreasing = TRUE)
 ```
 
 
-```{r}
+```{r, cache=TRUE}
 
 #Impute
 
-# set.seed(2020)
-
-# data_impute <- missForest(data, variablewise = TRUE)
-
-# mpute <- rfImpute(n_conflict ~ ., data = data)
-
-# imp <- mice(data, maxit = 0)
-
-# predM = imp$predictorMatrix
-# meth = imp$method
-
-# imp2 <- mice(data, maxit = 5, 
-  #           predictorMatrix = predM, 
-   #          method = meth, print =  FALSE)
-
-# imp <- rfImpute(n_conflict~ ., data = data, ntree = 500, iter = 10, maxnodes = 127, nodesize = 10, localImp = TRUE)
-
- # throws this error: Error in randomForest.default(x = obsX, y = obsY, ntree = ntree, mtry = mtry, : Can not handle categorical predictors with more than 53 categories. 
-
-# so, let's try dummy columns... 
+set.seed(2020)
 
 dummy_data <- data %>% 
               dummy_cols(select_columns = c("country"),
                         remove_selected_columns = TRUE, remove_first_dummy = TRUE)
 
-imp_mf <- missForest(dummy_data)
+imp_mf <- missForest(dummy_data, variablewise = TRUE, verbose = TRUE, ntree = 50) 
 
+# OOB imputation error est: 
+
+imp_mf$OOBerror
 
 ```
 
