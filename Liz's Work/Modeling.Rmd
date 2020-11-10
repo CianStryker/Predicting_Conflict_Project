@@ -8,6 +8,114 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
+
+library(randomForest)
+library(missForest)
+library(mice)
+library(fastDummies)
 library(tidyverse)
+```
+
+```{r}
+
+data <- read_csv("Raw_Data_Liz/Final_Data.csv", col_types = cols(
+  .default = col_double(),
+  country = col_character(),
+  iso2c = col_character(),
+  continent = col_character()
+))
+
+data <- as.data.frame(data)
+
+# data$country <- as.factor(data$country)
+
+data$iso2c <- as.factor(data$iso2c)
+
+data$continent <- as.factor(data$continent)
+
+str(data)
+
+data <- data %>% 
+        select(-iso2c)
+
+```
+
+```{r}
+
+# see what's missing: 
+
+p_missing <- unlist(lapply(data, function(x) sum(is.na(x))))/nrow(data)
+
+sort(p_missing[p_missing > 0], decreasing = TRUE)
+
+# ok so most of our variables are missing > 50% of their observations... 
+
+```
+
+```{r}
+
+
+```
+
+
+```{r}
+
+#Impute
+
+# set.seed(2020)
+
+# data_impute <- missForest(data, variablewise = TRUE)
+
+# mpute <- rfImpute(n_conflict ~ ., data = data)
+
+# imp <- mice(data, maxit = 0)
+
+# predM = imp$predictorMatrix
+# meth = imp$method
+
+# imp2 <- mice(data, maxit = 5, 
+  #           predictorMatrix = predM, 
+   #          method = meth, print =  FALSE)
+
+# imp <- rfImpute(n_conflict~ ., data = data, ntree = 500, iter = 10, maxnodes = 127, nodesize = 10, localImp = TRUE)
+
+ # throws this error: Error in randomForest.default(x = obsX, y = obsY, ntree = ntree, mtry = mtry, : Can not handle categorical predictors with more than 53 categories. 
+
+# so, let's try dummy columns... 
+
+dummy_data <- data %>% 
+              dummy_cols(select_columns = c("country"),
+                        remove_selected_columns = TRUE, remove_first_dummy = TRUE)
+
+imp_mf <- missForest(dummy_data)
+
+
+```
+
+
+```{r}
+
+#split data
+
+set.seed(2020)
+
+test <- sample(seq(nrow(data)), 
+                          round(0.2 * nrow(data)))
+
+training <- which(!(seq(nrow(data)) %in% test))
+
+```
+
+
+```{r}
+
+# random forest w/out imputation
+
+set.seed(2020)
+
+   bag <- randomForest(n_conflict ~., data=data.frame(data[-test,]), 
+                              mtry=13, importance =TRUE)
+   bag$importance
+
 ```
 
