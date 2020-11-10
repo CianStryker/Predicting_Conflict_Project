@@ -11,22 +11,39 @@ knitr::opts_chunk$set(echo = FALSE)
 library(readr)
 library(tidyverse)
 library(stats)
+library(randomForest)
+library(missForest)
+library(mice)
+library(fastDummies)
 ```
 
-```{r Load in Final Data}
 
-Final_Data <- read_csv("Final_Data/Final_Data.csv", col_types = cols(
-  .default = col_double(),
-  country = col_character(),
-  iso2c = col_character(),
-  continent = col_character()
-))
+```{r Loading in Imputed Data}
+
+data <- read.csv("Final_Data/imputed_data.csv")
+
+
+```
+
+
+```{r}
+
+#split data
+
+set.seed(2020)
+
+test <- sample(seq(nrow(data)), 
+                          round(0.2 * nrow(data)))
+
+training <- which(!(seq(nrow(data)) %in% test))
 
 ```
 
 ```{r Regression}
 
-Model_1 <- lm(data = Final_Data, n_conflict ~.)
+Model_1 <- lm(data = data, n_conflict ~.)
+
+summary(Model_1)
 
 ```
 
