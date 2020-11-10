@@ -15,6 +15,7 @@ library(randomForest)
 library(missForest)
 library(mice)
 library(fastDummies)
+library(sjmisc)
 ```
 
 
@@ -22,6 +23,8 @@ library(fastDummies)
 
 data <- read.csv("Final_Data/imputed_data.csv")
 
+data <- data %>%
+  move_columns(n_conflict)
 
 ```
 
@@ -37,15 +40,69 @@ test <- sample(seq(nrow(data)),
 
 training <- which(!(seq(nrow(data)) %in% test))
 
+test_data <- data.frame(data[test,])
+
+training_data <- data.frame(data[training,])
+
 ```
 
 ```{r Regression}
 
-Model_1 <- lm(data = data, n_conflict ~.)
+set.seed(2020)
+
+
+Model_1 <- lm(data = training_data, n_conflict ~.)
 
 summary(Model_1)
 
+# Model_2 <- lm(data = data[training,], n_conflict ~ year + gdp_current_US + population + population_growth_rate + infant_mortality + hdi + military_spending + freedom_index + EFindex + peace_keeping + fragment + xrcomp + xropen + parreg + parcomp + polity2 + terrorism_kill + terrorism_wound + nonstate_target + state_target)
+
+# summary(Model_2)
+
+# Model_3 <- lm(data = data[training,], n_conflict ~ year + gdp_current_US + population + infant_mortality + hdi + freedom_index + EFindex + fragment + xrcomp + parreg + parcomp + polity2 + terrorism_kill + terrorism_wound + nonstate_target + state_target)
+
+# summary(Model_3)
+
+
 ```
+
+```{r}
+
+set.seed(2020)
+
+predictions <- predict(Model_1, test_data) %>%
+  round(digits = 0)
+
+predictions_data <- data.frame(predictions)
+
+table(Truth = test_data$n_conflict, Prediction = predictions_data$predictions)
+```
+
+Correct: 1935, 150, 20, 1, 4
+total: 2110
+Accuracy: 90.75
+
+False Negative: 91, 4
+total: 95
+Accuracy: 4.08
+
+Fale Positive: 52, 6 
+total: 58
+Accuracy: 2.49
+
+```{r}
+
+check <- data.frame(test_data, predictions_data) %>%
+  gather(key, value, starts_with("country_")) %>%
+  filter(value == 1) %>%
+  separate(col = key, into = c("start", "country"), sep = "_") %>%
+  select(-value, -start) %>%
+  select(year, country, n_conflict, predictions)
+
+```
+
+
+
 
 ```{r Ridge Regression}
 
