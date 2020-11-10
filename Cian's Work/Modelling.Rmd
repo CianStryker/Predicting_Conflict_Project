@@ -40,9 +40,9 @@ test <- sample(seq(nrow(data)),
 
 training <- which(!(seq(nrow(data)) %in% test))
 
-test_data <- data.frame(data[test,])
+test_data <- data.frame(data[test, ])
 
-training_data <- data.frame(data[training,])
+training_data <- data.frame(data[training, ])
 
 ```
 
@@ -73,13 +73,15 @@ set.seed(2020)
 predictions <- predict(Model_1, test_data) %>%
   round(digits = 0)
 
+predictions[predictions < 0] <- 0
+
 predictions_data <- data.frame(predictions)
 
 table(Truth = test_data$n_conflict, Prediction = predictions_data$predictions)
 ```
 
-Correct: 1935, 150, 20, 1, 4
-total: 2110
+Correct: 1937, 150, 20, 1, 4
+total: 2112
 Accuracy: 90.75
 
 False Negative: 91, 4
@@ -100,8 +102,6 @@ check <- data.frame(test_data, predictions_data) %>%
   select(year, country, n_conflict, predictions)
 
 ```
-
-
 
 
 ```{r Ridge Regression}
