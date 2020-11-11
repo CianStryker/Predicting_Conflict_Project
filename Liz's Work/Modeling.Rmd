@@ -91,7 +91,17 @@ data_3$continent <- as.factor(data_3$continent)
 
 data_3$peace_keeping <- as.factor(data_3$peace_keeping)
 
-data_3$change <- as.numeric(data_3$change)
+data_3$change <- as.integer(data_3$change)
+
+data_3$durable <- as.integer(data_3$durable)
+
+data_3$terrorism_kill <- as.integer(data_3$terrorism_kill)
+
+data_3$terrorism_wound <- as.integer(data_3$terrorism_wound)
+
+data_3$state_target <- as.integer(data_3$state_target)
+
+data_3$nonstate_target <- as.integer(data_3$nonstate_target)
 
 data_3$authority_challenge <- as.factor(data_3$authority_challenge)
 
@@ -145,9 +155,8 @@ imp_mf$OOBerror
 
 # here's the data frame
 
-# sf had too many missing values to impute meaningfully, so I took it out 
 
-imp_df <- imp_mf$ximp %>% select(-sf)
+imp_df <- imp_mf$ximp
 
 imputed_data <- write_csv(imp_df, path = "Raw_Data_Liz/imputed_data.csv")
 
