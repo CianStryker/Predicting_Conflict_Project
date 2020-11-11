@@ -11,12 +11,11 @@ knitr::opts_chunk$set(echo = FALSE)
 library(readr)
 library(tidyverse)
 library(stats)
-library(randomForest)
-library(missForest)
-library(mice)
 library(fastDummies)
 library(sjmisc)
 library(glmnet)
+library(gt)
+library(scales)
 ```
 
 
@@ -116,12 +115,61 @@ final_check <- check %>%
 
 labels <- c("False Positive", "Accurate", "False Negative")
 
-Percent_Linear <- data.frame(Percent = final_check$n/nrow(test_data) * 100) %>%
-  round(digits = 2)
+Percent_Linear <- data.frame(Percent = final_check$n/nrow(test_data)) %>%
+  round(digits = 4)
 
-final_check <- data.frame(labels, final_check, Percent_Linear)
+final_check <- data.frame(labels, final_check, Percent_Linear) %>%
+  select(-diff)
 
-final_check
+row1 <- c(NA, NA, NA)
+row2 <- c("MSE", unlist(round(MSE_model_1, digits = 4)), NA)
+
+final_check <- rbind(final_check, row1,  row2) 
+
+final_check$Percent <- as.numeric(final_check$Percent)
+
+
+
+final_check %>%
+  gt() %>%
+  cols_label("labels" = " ", "n" = "Value") %>%
+  tab_header(
+    title = "Predicting Civil Conflict",
+    subtitle = "Linear Model Prediction Results "
+  ) %>%
+  fmt_missing(
+    columns = 1:3, 
+    missing_text = " "
+  ) %>%
+  cols_align(align = c("center"), columns = TRUE) %>%
+  fmt_percent(
+    columns = 3, 
+    decimals = 2
+  ) %>%
+  tab_style(
+    cell_text(weight = "bold"), 
+    locations = cells_title(groups = "title")
+  ) %>%
+  tab_style(
+    cell_text(style = "italic"), 
+    locations = cells_title(groups = "subtitle")
+  ) %>%
+  tab_style(
+    cell_text(size = 17), 
+    locations = cells_title(groups = "subtitle")
+  ) %>%
+  tab_style(
+    cell_text(weight = "bold"), 
+    locations = cells_column_labels(c("n", "Percent"))
+  ) %>%
+  tab_style(
+    cell_text(weight = "bold"), 
+    locations = cells_body(columns = "labels")
+  ) %>%
+  tab_style(
+    cell_text(style = "italic"), 
+    locations = cells_body(columns = c("n", "Percent"))
+  ) 
 
 ```
 
@@ -177,16 +225,60 @@ final_ridge_check <- ridge_check %>%
 
 final_ridge_check <- data.frame(labels, final_ridge_check)
 
-Percent_Ridge <- data.frame(Percent = final_ridge_check$n/nrow(test_data) * 100) %>%
-  round(digits = 2)
+Percent_Ridge <- data.frame(Percent = final_ridge_check$n/nrow(test_data)) %>%
+  round(digits = 4)
 
-final_ridge_check <- data.frame(final_ridge_check, Percent_Ridge)
+final_ridge_check <- data.frame(final_ridge_check, Percent_Ridge) %>%
+  select(-diff)
 
-final_ridge_check
+row2_x <- c("MSE", unlist(round(MSE_model_2, digits = 4)), NA)
+
+final_ridge_check <- rbind(final_ridge_check, row1,  row2_x) 
+
+final_ridge_check$Percent <- as.numeric(final_ridge_check$Percent)
+
+
+
+final_ridge_check %>%
+  gt() %>%
+  cols_label("labels" = " ", "n" = "Value") %>%
+  tab_header(
+    title = "Predicting Civil Conflict",
+    subtitle = "Ridge Regression Prediction Results "
+  ) %>%
+  fmt_missing(
+    columns = 1:3, 
+    missing_text = " "
+  ) %>%
+  cols_align(align = c("center"), columns = TRUE) %>%
+  fmt_percent(
+    columns = 3, 
+    decimals = 2
+  ) %>%
+  tab_style(
+    cell_text(weight = "bold"), 
+    locations = cells_title(groups = "title")
+  ) %>%
+  tab_style(
+    cell_text(style = "italic"), 
+    locations = cells_title(groups = "subtitle")
+  ) %>%
+  tab_style(
+    cell_text(size = 17), 
+    locations = cells_title(groups = "subtitle")
+  ) %>%
+  tab_style(
+    cell_text(weight = "bold"), 
+    locations = cells_column_labels(c("n", "Percent"))
+  ) %>%
+  tab_style(
+    cell_text(weight = "bold"), 
+    locations = cells_body(columns = "labels")
+  ) %>%
+  tab_style(
+    cell_text(style = "italic"), 
+    locations = cells_body(columns = c("n", "Percent"))
+  ) 
 ```
 
-
-```{r Random Forest}
-
-```
 
