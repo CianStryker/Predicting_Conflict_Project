@@ -116,7 +116,10 @@ final_check <- check %>%
 
 labels <- c("False Positive", "Accurate", "False Negative")
 
-final_check <- data.frame(labels, final_check)
+Percent_Linear <- data.frame(Percent = final_check$n/nrow(test_data) * 100) %>%
+  round(digits = 2)
+
+final_check <- data.frame(labels, final_check, Percent_Linear)
 
 final_check
 
@@ -173,6 +176,11 @@ final_ridge_check <- ridge_check %>%
   count(diff)
 
 final_ridge_check <- data.frame(labels, final_ridge_check)
+
+Percent_Ridge <- data.frame(Percent = final_ridge_check$n/nrow(test_data) * 100) %>%
+  round(digits = 2)
+
+final_ridge_check <- data.frame(final_ridge_check, Percent_Ridge)
 
 final_ridge_check
 ```
