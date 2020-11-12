@@ -21,9 +21,9 @@ library(data.table)
 
 ```{r Gathering Wold Bank Data, eval=FALSE}
 
-# new_cache = WDIcache()
-
-# WDIsearch('CC BY-4.0')
+# To start the data gathering for our project I'm pulling in a bunch 
+# of world bank predictors using the WDI() package, but this process takes 
+# forever. 
 
 World_Bank_Data <- WDI(indicator = c("gdp_current_US" = "NY.GDP.MKTP.CD",
                                      "gdp_per_capita" = "NY.GDP.PCAP.CD",
@@ -38,23 +38,34 @@ World_Bank_Data <- WDI(indicator = c("gdp_current_US" = "NY.GDP.MKTP.CD",
                                      "natual_resources_rent_percent_gdp" = "NY.GDP.TOTL.RT.ZS"), 
                        country = "all", start = 1960, extra = FALSE)
 
+# I want to see what the countries are from the World Bank data set. 
+
 WB_original_countries <- data.frame(unique(World_Bank_Data$country))
+
+# I use the countrycode package to standardize the country names. 
 
 World_Bank_Data$country <- countrycode(World_Bank_Data$country, "country.name", "country.name")
 
+# I then remove any countries that weren't in the countrycode list, which was 
+# mostly things like "Arab Countries", so regional names that weren't countries. 
 
 Data_Set <- World_Bank_Data %>%
   filter(country != "NA")
 
-Data_Set$continent = Data_Set$country
+# Here I wanted to create a continent variable. 
 
+Data_Set$continent = Data_Set$country
 Data_Set$continent <- countrycode(Data_Set$country, "country.name", "continent")
+
+# Then I wanted to move the columns around to create an easier to read dataset. 
 
 Data_Set <- Data_Set %>%
   select(country, iso2c, year, continent, everything())
 
+# Here I write the results as an excel file so I don't 
+# have to rerun this chunk of code again. 
 
-write.xlsx(Data_Set, "Raw_Data/First_Draft_Data.xlsx")
+write.xlsx(Data_Set, "Raw_Data/Master_Dataset_Versions/First_Draft_Data.xlsx")
 
 ```
 
@@ -63,19 +74,29 @@ write.xlsx(Data_Set, "Raw_Data/First_Draft_Data.xlsx")
 # It takes way less time to load in data from the excel file
 # than in takes to create the data directly from the World Bank
 
-Data_Set <- read.xlsx("Raw_Data/First_Draft_Data.xlsx") 
+Data_Set <- read.xlsx("Raw_Data/Master_Dataset_Versions/First_Draft_Data.xlsx") 
+
+# Forgot to make year a factor instead of numeric 
 
 Data_Set$year <- as.factor(Data_Set$year)
 ```
 
 ```{r HDI Data}
 
-hdi_data <- read_csv("Raw_Data/Human Development Index (HDI).csv", col_types = cols(
+# I'm just grabbing the UN's HDI data, which I downloaded and then used excel 
+# to clean up the fomratting for R. 
+
+hdi_data <- read_csv("Raw_Data/Original_Datasets/Human Development Index (HDI).csv", col_types = cols(
                                                                     .default = col_character(),
                                                                     `HDI Rank (2018)` = col_double()
                       ))
 
+# Don't need the HDI ranking. 
+
 hdi_data <- hdi_data[,-1]
+
+# I love melt and I don't care that its depreciated. It gets 
+# pivoting data done. 
 
 hdi_data2 <- reshape2::melt(hdi_data, measure.vars = 2:30) %>%
   clean_names()
@@ -83,22 +104,31 @@ hdi_data2 <- reshape2::melt(hdi_data, measure.vars = 2:30) %>%
 colnames(hdi_data2)[colnames(hdi_data2) == 'variable'] <- "year"
 colnames(hdi_data2)[colnames(hdi_data2) == 'value'] <- "hdi"
 
-hdi_data2$country <- countrycode(hdi_data2$country, "country.name", "country.name") 
+# Standardizing country names and removing regions. 
 
+hdi_data2$country <- countrycode(hdi_data2$country, "country.name", "country.name") 
 hdi_data2 <- hdi_data2 %>%
   filter(country != "NA") 
 
+# The data set uses "..." instead of NA so I fix that. 
+
 hdi_data2 <- hdi_data2 %>%
   replace_with_na(replace = list(hdi = c("..")))
+
+# Here I just add it to our dataset that has the World Bank Data. 
 
 Data_Set2 <- left_join(Data_Set, hdi_data2, by = c("country", "year"))
 ```
 
 ```{r Military Expenditure Data}
 
-# Military Sepnding in terms of Current USD (in Millions) 
+# Here I'm brining in SIPRI data regarding military spending which is 
+# in terms of Current USD (in Millions). I used excell to clean up
+# the format somewhat for R. 
 
-military_spending <- read.xlsx("Raw_Data/SIPRI-Milex-data-1949-2019.xlsx")
+military_spending <- read.xlsx("Raw_Data/Original_Datasets/SIPRI-Milex-data-1949-2019.xlsx")
+
+# The same datacleaning I used for the HDI data. 
 
 military_spending2 <- reshape2::melt(military_spending, measure.vars = 2:72)%>%
   clean_names()
@@ -109,25 +139,29 @@ colnames(military_spending2)[colnames(military_spending2) == 'value'] <- "milita
 military_spending2 <- military_spending2 %>%
   replace_with_na(replace = list(military_spending = c("xxx", ". ."))) 
 
-# military_spending2$country <- countrycode(military_spending2$country, "country.name", "country.name") 
+# Then I join it to our master data set. 
 
-# military_spending2 <- military_spending2 %>%
-#   filter(country != "NA") 
+Data_Set3 <- left_join(Data_Set2, military_spending2, by = c("country", "year"))
 
-Data_Set3 <- left_join(Data_Set2, military_spending2, by = c("country", "year")) 
+# But I wanted to make sure military_spending was numeric and that
+# I multiplied in back into millions. 
 
 Data_Set3$military_spending <- as.numeric(Data_Set3$military_spending)
-
 Data_Set3 <- Data_Set3%>%
   mutate(military_spending = military_spending * 1000000)
 ```
 
 ```{r Military Import Data}
 
-military_imports <- read_csv("Raw_Data/TIV-Import-All-1950-2019.csv", col_types = cols(
+# This is another SIPRI data set but for Military imports. 
+
+military_imports <- read_csv("Raw_Data/Original_Datasets/TIV-Import-All-1950-2019.csv", col_types = cols(
   .default = col_double(),
   country = col_character()
 ))
+
+# I use the same code as before to clean and join it into the 
+# master set. 
 
 military_imports2 <- reshape2::melt(military_imports, measure.vars = 2:72)%>%
   clean_names()
@@ -135,20 +169,19 @@ military_imports2 <- reshape2::melt(military_imports, measure.vars = 2:72)%>%
 colnames(military_imports2)[colnames(military_imports2) == 'variable'] <- "year"
 colnames(military_imports2)[colnames(military_imports2) == 'value'] <- "military_imports_TIV"
 
-# military_imports2$country <- countrycode(military_imports2$country, "country.name", "country.name") 
-
-# military_imports3 <- military_imports2 %>%
-#   filter(country != "NA")
-
 Data_Set4 <- left_join(Data_Set3, military_imports2, by = c("country", "year"))
 ```
 
 
 ```{r Freedom House}
 
-# Freedom house is red as higher equals less free. 
+# Now I wanted to bring in Freedom House's data on 
+# the degree of freedom in a country to measure regime type. 
+# Freedom house is read as higher values equal less freedom. 
+# I use teh same type of coding to bring it in, but I did some
+# work in excel to clean up the formatting for R. 
 
-freedom_house <- read.xlsx("Raw_Data/FOTP1980-FOTP2017_Public-Data.xlsx")
+freedom_house <- read.xlsx("Raw_Data/Original_Datasets/FOTP1980-FOTP2017_Public-Data.xlsx")
 
 freedom_house <- reshape2::melt(freedom_house, measure.vars = 2:25)%>%
   clean_names()
@@ -165,6 +198,9 @@ freedom_house <- freedom_house %>%
 
 freedom_house[freedom_house == "Serbia and Montenegro"] <- "Yugoslavia"
 
+# Then I join this data into our larger data set, but I realized that
+# we don't have much data at all for 2020 so I removed it from our set. 
+
 Data_Set5 <- left_join(Data_Set4, freedom_house, by = c("country", "year")) %>%
   filter(year != 2020)
 
@@ -172,15 +208,19 @@ Data_Set5 <- left_join(Data_Set4, freedom_house, by = c("country", "year")) %>%
 
 ```{r Making More Excel Data}
 
-write.xlsx(Data_Set5, "Raw_Data/Second_Draft_Data.xlsx")
+# I make another excel version of our master data to this point
+# so Liz can access it and work on her end. 
+
+write.xlsx(Data_Set5, "Raw_Data/Master_Dataset_Version/Second_Draft_Data.xlsx")
 
 ```
 
 ```{r Ethnic Diveristy}
 
-# I'm using the Historical Index of Ethnic Fractionalizaiton dataset.
+# I'm using the Historical Index of Ethnic Fractionalizaiton dataset,
+# which I downloaded. 
 
-HIEF <- read_csv("Raw_Data/HIEF_data.csv", col_types = cols(
+HIEF <- read_csv("Raw_Data/Original_Datasets/HIEF_data.csv", col_types = cols(
   Country = col_character(),
   Year = col_double(),
   EFindex = col_double()
@@ -197,6 +237,8 @@ HIEF <- HIEF %>%
 
 HIEF[HIEF == "Democratic Republic of Vietnam"] <- "Vietnam"
 
+# Here I just clean up the data so I can join it into our
+# later data set. 
 
 colnames(HIEF)[colnames(HIEF) == 'Country'] <- "country"
 colnames(HIEF)[colnames(HIEF) == 'Year'] <- "year"
@@ -208,20 +250,23 @@ HIEF <- HIEF %>%
   group_by(country, year) %>%
   unique()
 
-countrylist <- unique(Data_Set5$country)
+# Just joined it in here, but took some extra steps to make
+# sure our country list stays consistent. 
 
 Data_Set6 <- left_join(Data_Set5 %>% group_by(country) %>% mutate(id = row_number()),
                   HIEF %>% group_by(country) %>% mutate(id = row_number()), 
                   by = c("country", "year", "id")) %>%
               select(-id)
 
-year_range <- unique(Data_Set5$year)
-
 ```
 
 ```{r Peacekeeping Data}
 
-Peace <- read_csv("Raw_Data/MILINDA-v1-March2019.csv", col_types = cols(
+# This is the final dataset that I'm joining to our master set, but
+# Liz is adding others. I'm using the MILINDA peacekeeping data, which 
+# I downloaded here. 
+
+Peace <- read_csv("Raw_Data/Original_Datasets/MILINDA-v1-March2019.csv", col_types = cols(
   .default = col_character(),
   caseid = col_double(),
   hcons = col_double(),
@@ -239,15 +284,30 @@ Peace <- read_csv("Raw_Data/MILINDA-v1-March2019.csv", col_types = cols(
   bef1992a = col_double()
 ))
 
+# I'm only interested in the three variables below. 
+
 Peace <- Peace %>%
   select(country, yearbeg, yearend)
 
+# Here I shift anyting that's ongoing to the limits of
+# this particular data set which is 2018. 
+
 Peace$yearend[Peace$yearend == "ongoing"] <- 2018
+
+# Now I'm only interested in the actual year from
+# this data set, so I make a list of the end years. 
 
 end_year <- parse_number(Peace$yearend)
 
+# Then I add them into the dataset itself, while
+# removing the original column. 
+
 Peace2 <- data.frame(Peace, end_year) %>%
     select(!yearend)
+
+# Now I make the years double so that I can 
+# use mutate next to prevent any years before
+# 1960. 
 
 Peace2$yearbeg <- as.double(Peace2$yearbeg)
 Peace2$end_year <- as.double(Peace2$end_year)
@@ -255,24 +315,54 @@ Peace2$end_year <- as.double(Peace2$end_year)
 Peace2 <- Peace2 %>%
   filter(yearbeg >= 1960)
 
-write.xlsx(Peace2, "Raw_Data/Manual_time.xlsx")
+# Here is where I hit a wall though. This data decided to list separate
+# peacekeeping missions to each country with separate, but often overlapping
+# date ranges. We are only interested in whether a country had a peacekeeping 
+# presence at all and it would be a binary 1 or 0 regardless of how many. 
+# I couldn't think of a way to fix this in R, so I decided to 
+# reupload the dataset as an excel file and manually edit the data. 
 
-Peace_Changed <- read.xlsx("Raw_Data/Manual_time_changed.xlsx")
+write.xlsx(Peace2, "Raw_Data/Work_Space/Manual_time.xlsx")
+
+# After doing that, I pulled the data back in. 
+
+Peace_Changed <- read.xlsx("Raw_Data/Work_Space/Manual_time_changed.xlsx")
+
+```
+
+```{r Peace Data Round 2}
+
+# Here I had to make an actual time series for each data range.
+# And this required multiple steps to pull off. 
 
 Peace3 <- setDT(Peace_Changed)[, .(country, year = seq(yearbeg, end_year, by = 1)), 
           .(grp = 1:nrow(Peace_Changed))][, grp := NULL][] %>%
   mutate(year = as.factor(year))
 
+# I had to make a list of the years to rep values later. 
+
+year_range <- unique(Data_Set6$year)
+
+# Make a country list as well. 
+
 countries_Peace <- unique(Peace3$country)
+
+# Now I need the size of the dataset. 
 
 list1 <- nrow(Peace3)
 peace_keeping <- rep(1, length(list1))
 
+# Make a new data frame using that info. 
+
 Peace3 <- data.frame(Peace3, peace_keeping)
+
+# Then create the date ranges for each country. 
 
 year <- rep(year_range, length(countries_Peace))
 country <- rep(countries_Peace, length(year_range))
 
+# Here I can grab a blank tmeplate of countries
+# and dates to make a new dataframe. 
 
 Peace_Data <- data.frame(year)
 Peace_Data2 <- tibble(country) %>%
@@ -280,12 +370,20 @@ Peace_Data2 <- tibble(country) %>%
 
 Peace_Data3 <- data.frame(Peace_Data2, Peace_Data)
 
+# We decided to join Western Saharah Morocco to Morocco in 
+# our final version. 
+
 Peace_Data3[Peace_Data3 == "Western Sahara Morocco"] <- "Morocco"
 
+# Finally, I can then join the two peace datasets so that I can have
+# the data in the format that works with our final set. 
 
 Peace4 <- left_join(Peace_Data3, Peace3, by = c("country", "year")) 
 
 Peace4$country <- countrycode(Peace4$country, "country.name", "country.name") 
+
+# I can drop the non-country values and then we decided to report any NA values
+# as 0s since they likely did not have peacekeeping forces present. 
 
 Peace4 <- Peace4 %>%
   drop_na(country) %>%
@@ -294,6 +392,8 @@ Peace4 <- Peace4 %>%
 
 Peace4[is.na(Peace4)] <- 0
 
+# And at last I join it back into the master dataset. 
+
 Data_Set7 <- left_join(Data_Set6 %>% group_by(country) %>% mutate(id = row_number()),
                   Peace4 %>% group_by(country) %>% mutate(id = row_number()), 
                   by = c("country", "year", "id")) %>%
@@ -301,44 +401,55 @@ Data_Set7 <- left_join(Data_Set6 %>% group_by(country) %>% mutate(id = row_numbe
 
 ```
 
-
 ```{r Newest Version}
 
-write.xlsx(Data_Set7, "Raw_Data/Third_Draft.xlsx")
+# Then I write this version to share with Liz again. 
+# The rest of the data gathering is one her end. 
+
+write.xlsx(Data_Set7, "Raw_Data/Master_Dataset_Versions/Third_Draft.xlsx")
 
 ```
 
 ```{r All predictors data}
 
-All_p_Data <- read_csv("Raw_Data/fifth.csv", col_types = cols(
+# Here I load in the version of the data set after Liz
+# joined in her three datasets as well. 
+
+# "fifth.csv" is Liz's final version. We did not keep a consistent
+# naming scheme between the two of us. 
+
+All_p_Data <- read_csv("Raw_Data/Master_Dataset_Versions/fifth.csv", col_types = cols(
   .default = col_double(),
   country = col_character(),
   iso2c = col_character(),
   continent = col_character()
 ))
 
-
-All_p_Data$peace_keeping[is.na(All_p_Data$peace_keeping)] <- 0
-
-new_country_list <- unique(All_p_Data$country)
-
-```
-
-```{r}
+# We have an issue, however, in terms of how the different datasets
+# treated countries that didn't exist. For example, the World Bank has
+# values for Croatia well before Croatia actually existed and does not
+# have data for Yugoslavia, which Croatia belonged too before 1991. 
+# Other data sets, however, do include Yugoslavia. So we decided
+# to filter out the problem cases so that we could make manual
+# changes in excel. 
 
 Bad_Countries <- All_p_Data %>%
   filter(country %in% c("Czechia", "Slovakia", "Czechoslovakia", "Yugoslavia", "Serbia", "Serbia (Yugoslavia)", "Serbia and Montenegro", "Slovenia", "Croatia", "Bosnia & Herzegovina", "Kosovo", "Montenegro", "North Macedonia", "Sudan", "South Sudan"))
 
-write.xlsx(Bad_Countries, "Raw_Data/Problem_Cases.xlsx")
+# From the problem countries above, I took charge of Yugolavia and 
+# all its component countries. We decided to work manually in excel 
+# to make our dataset historically accurate by joining the data such 
+# as GDP from all former Yugoslav countries into Yugoslav's GDP and 
+# removing observations for countries that did not yet exist. 
 
 My_countries <- Bad_Countries %>%
   filter(country %in% c("Yugoslavia", "Serbia", "Serbia (Yugoslavia)", "Serbia and Montenegro", "Slovenia", "Croatia", "Bosnia & Herzegovina", "Kosovo", "Montenegro", "North Macedonia"))
 
-write.xlsx(My_countries, "Raw_Data/Yugoslavia.xlsx")
+write.xlsx(My_countries, "Raw_Data/Work_Space/Yugoslavia.xlsx")
 
-```
-
-```{r}
+# The data set below is the result of both Liz and I's manual editing 
+# so those changes will not be reflected in our code but the result can
+# be seen in the final output. 
 
 Final_Data <- read_csv("Final_Data/Final_Data.csv", col_types = cols(
   .default = col_double(),
@@ -348,4 +459,3 @@ Final_Data <- read_csv("Final_Data/Final_Data.csv", col_types = cols(
 ))
 
 ```
-

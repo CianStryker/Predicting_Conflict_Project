@@ -41,7 +41,7 @@ data <- data %>%
 # that we could have a "Final" version of our data with imputed values so
 # people could see the final results in a more interpretable way. 
 
-Non_Dummy_Data <- check %>%
+Non_Dummy_Data <- data %>%
   gather(key, value, starts_with("country_")) %>%
   filter(value == 1) %>%
   separate(col = key, into = c("start", "country"), sep = "_") %>%
@@ -54,7 +54,10 @@ Non_Dummy_Data <- check %>%
   filter(value == 1) %>%
   separate(col = key, into = c("start", "continent"), sep = "_") %>%
   select(-value, -start) %>%
-  select(year, country, n_conflict, predictions)
+  arrange(country)
+
+Non_Dummy_Data <- Non_Dummy_Data %>%
+  select(country, year, continent, everything())
 
 write.xlsx(Non_Dummy_Data, "Final_Data/Non_Dummhy_Imputed_Data.xlsx")
 
@@ -193,7 +196,7 @@ linear_results <- final_check %>%
     locations = cells_body(columns = c("n", "Percent"))
   ) 
 
-gtsave(linear_results, "Linear_Results.png")
+gtsave(linear_results, "Images/Linear_Results.png")
 
 
 ```
@@ -319,7 +322,7 @@ ridge_results <- final_ridge_check %>%
     locations = cells_body(columns = c("n", "Percent"))
   ) 
 
-gtsave(ridge_results, "Ridge_Results.png")
+gtsave(ridge_results, "Images/Ridge_Results.png")
 ```
 
 
