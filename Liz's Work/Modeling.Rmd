@@ -178,9 +178,9 @@ test <- sample(seq(nrow(rfd)),
 
 training <- which(!(seq(nrow(rfd)) %in% test))
 
-test_data <- data.frame(data[test, ])
+# test_data <- data.frame(rfd[test, ])
 
-training_data <- data.frame(data[training, ])
+# training_data <- data.frame(rfd[training, ])
 
 # random forest can't run chr variables 
 
@@ -197,10 +197,10 @@ rfd$continent <- as.factor(rfd$continent)
 
 set.seed(2020)
 
-bag_rfd <- randomForest(n_conflict ~ ., data=data.frame(rfd[-test,]),
+bag.rfd <- randomForest(n_conflict ~ ., data=data.frame(rfd[-test,]),
                               importance =TRUE)
 
-bag_rfd$importance
+bag.rfd$importance
 
 ```
 
@@ -210,10 +210,19 @@ bag_rfd$importance
   
 rfd.test <- rfd[-training ,"n_conflict"]
 
+# rfd.test <- as.data.frame(rfd.test)
 
-yhat.bag <- predict (bag_rfd, newdata=rfd[-training ,])
+# rfd.test$n_conflict <- as.numeric(rfd.test$n_conflict)
 
-mean((yhat.bag -rfd.test)^2)
+yhat.bag <- predict(bag.rfd, newdata = data.frame(rfd[-training, ]))
+
+xx <- (yhat.bag - rfd.test)^2
+
+xx <- as.data.frame(xx)
+
+xx <- as.numeric(xx$n_conflict)
+
+mean(xx)
 
 ```
 
