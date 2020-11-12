@@ -8,7 +8,6 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
-
 library(randomForest)
 library(missForest)
 library(fastDummies)
@@ -16,6 +15,7 @@ library(tidyverse)
 ```
 
 ```{r}
+
 
 data <- read_csv("Raw_Data_Liz/Final_Data.csv", col_types = cols(
   .default = col_double(),
@@ -321,7 +321,7 @@ final_check_rf %>%
     locations = cells_body(columns = c("n", "Percent"))
   ) 
 
-# Just added the code in for you. Just move it manually into our images folder too 
+# Just added the code in for you
 
 gtsave(final_check_rf, "Random_Forest_Results.png")
 
