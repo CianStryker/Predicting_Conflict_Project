@@ -178,7 +178,7 @@ test <- sample(seq(nrow(rfd)),
 
 training <- which(!(seq(nrow(rfd)) %in% test))
 
-# test_data <- data.frame(rfd[test, ])
+test_data <- data.frame(rfd[test, ])
 
 # training_data <- data.frame(rfd[training, ])
 
@@ -205,6 +205,8 @@ bag.rfd$importance
 ```
 
 ```{r}
+
+set.seed(2020)
   
 # predict: 
   
@@ -222,7 +224,104 @@ xx <- as.data.frame(xx)
 
 xx <- as.numeric(xx$n_conflict)
 
-mean(xx)
+MSE <- mean(xx)
+
+# MSE = [1] 0.01598933 lol 
+
+```
+
+```{r}
+
+# accuracy 
+
+# rfd.test = test
+# yhat.bag = predictions from RF model 
+
+check <- data.frame(rfd.test, yhat.bag)
+
+check$real_conflict <- ifelse(check$n_conflict >=1, 1, 0)
+
+check$yhat.bag <- ifelse(check$yhat.bag >= 1, 1, 0)
+
+final_check_rf <- check %>%
+  mutate(diff = real_conflict - yhat.bag) %>%
+  count(diff)
+
+final_check_rf
+
+final_check_rf$diff <- as.numeric(final_check_rf$diff)
+
+final_check_rf$n <- as.numeric(final_check_rf$n)
+
+```
+
+
+```{r}
+
+labels <- c("False Positive", "Accurate", "False Negative")
+
+Percent_Linear <- data.frame(Percent = final_check_rf$n/nrow(test_data)) %>%
+  round(digits = 4)
+
+
+final_check_rf <- data.frame(labels, final_check_rf, Percent_Linear) %>%
+  select(-diff)
+
+row1 <- c(NA, NA, NA)
+row2 <- c("MSE", unlist(round(MSE, digits = 4)), NA)
+
+final_check_rf <- rbind(final_check_rf, row1,  row2) 
+
+final_check_rf$Percent <- as.numeric(final_check_rf$Percent)
+
+```
+
+```{r}
+
+# make table
+
+final_check_rf %>%
+  gt() %>%
+  cols_label("labels" = " ", "n" = "Value") %>%
+  tab_header(
+    title = "Predicting Civil Conflict",
+    subtitle = "Random Forest Prediction Results "
+  ) %>%
+  fmt_missing(
+    columns = 1:3, 
+    missing_text = " "
+  ) %>%
+  cols_align(align = c("center"), columns = TRUE) %>%
+  fmt_percent(
+    columns = 3, 
+    decimals = 2
+  ) %>%
+  tab_style(
+    cell_text(weight = "bold"), 
+    locations = cells_title(groups = "title")
+  ) %>%
+  tab_style(
+    cell_text(style = "italic"), 
+    locations = cells_title(groups = "subtitle")
+  ) %>%
+  tab_style(
+    cell_text(size = 17), 
+    locations = cells_title(groups = "subtitle")
+  ) %>%
+  tab_style(
+    cell_text(weight = "bold"), 
+    locations = cells_column_labels(c("n", "Percent"))
+  ) %>%
+  tab_style(
+    cell_text(weight = "bold"), 
+    locations = cells_body(columns = "labels")
+  ) %>%
+  tab_style(
+    cell_text(style = "italic"), 
+    locations = cells_body(columns = c("n", "Percent"))
+  ) 
+
+
 
 ```
 
