@@ -23,6 +23,7 @@ library(scales)
 
 data <- read.csv("Final_Data/imputed_data.csv")
 
+
 data <- data %>%
   dummy_cols(select_columns = c("year", "continent"), remove_selected_columns = TRUE, remove_first_dummy = FALSE) %>%
   move_columns(n_conflict)
@@ -103,7 +104,6 @@ check2 <- check %>%
   separate(col = key, into = c("start", "continent"), sep = "_") %>%
   select(-value, -start) %>%
   select(year, country, n_conflict, predictions)
-
 
 check$real_conflict <- ifelse(check$n_conflict >=1, 1, 0)
 check$predict_conflict <- ifelse(check$predictions >= 1, 1, 0)
