@@ -177,7 +177,7 @@ Data_Set4 <- left_join(Data_Set3, military_imports2, by = c("country", "year"))
 
 # Now I wanted to bring in Freedom House's data on 
 # the degree of freedom in a country to measure regime type. 
-# Freedom house is read as higher values equal less freedom. 
+# Freedom house is read as higher values equal more freedom. 
 # I use teh same type of coding to bring it in, but I did some
 # work in excel to clean up the formatting for R. 
 
