@@ -25,7 +25,7 @@ library(tidyverse)
 
 ```{r Cian dataset}
 
-# Cians' Second Draft Data
+# Cians' Second Draft Data which contains most of his predictors. 
 
 third_draft <- read.xlsx("Raw_Data_Liz/Third_Draft.xlsx")
 
@@ -34,6 +34,8 @@ third_draft <- read.xlsx("Raw_Data_Liz/Third_Draft.xlsx")
 
 ```{r Polity V}
 
+# Polity V data- codebook in GitHub. 
+
 polity <- read_csv("Raw_Data_Liz/p5v2018.csv", col_types = cols(
   .default = col_double(),
   scode = col_character(),
@@ -41,6 +43,8 @@ polity <- read_csv("Raw_Data_Liz/p5v2018.csv", col_types = cols(
 ))
 
 third_draft$year <- as.numeric(third_draft$year)
+
+# These are all regime stability indicators either as-is or that I'll mutate later. 
 
 polity <- polity %>% 
           select("country",
@@ -61,26 +65,32 @@ polity <- polity %>%
 
 polity <- as.data.frame(polity)
 
+# merge Polity with existing data from Cian. 
 
 third_draft_polity <- merge(x = third_draft, y = polity, by = c("country", "year"), all = TRUE)
-
 
 ```
 
 ```{r}
+
+# Try to find where thing's don't line up between datasets so far. 
 
 # third_draft_polity has 27 more countries corresponding to 905 rows. See extra_co.rmd for list of countries. 
 
 extra_countries_pol <- third_draft_polity[!third_draft_polity$country%in%third_draft$country,]
 
-# Some should be renamed, others will likely be dropped. 
+# Some should be renamed, others will be dropped later. There will be a ton more problem countries as we keep adding variables.  
 
 ```
 
 
 ```{r}
 
+# GTD is the Global Terrorism Database. Codebook in GitHub. 
+
 gtd <- read_csv("Raw_Data_Liz/gtd.csv")
+
+# These are the terrorism indicators, which will take some manipulation. 
 
 gtd_2 <- gtd %>% 
        select(country, country_txt, iyear, targtype1, nkill, nwound) %>% 
@@ -92,13 +102,13 @@ gtd_2 <- gtd %>%
 
 ```{r}
 
-# recode targtype1: 
+# Right now, targtype1 is a categorical variable with 22 different values. It's too granular for this project, so I'll recode the target type into state and nonstate targets.  
 
 gtd_2$targtype1 <- as.factor(gtd_2$targtype1)
 
 
 gtd_recode <- gtd_2 %>% 
-              filter(targtype1 != 13) %>%  #13 and 20 are other and unk, respectively 
+              filter(targtype1 != 13) %>%  #13 and 20 are 'other' and 'unk,' respectively 
               filter(targtype1 != 20) %>% 
               mutate(recode_target1 = recode_factor(targtype1,
                                              "1" = "nonstate_target",   #businesses    
@@ -122,13 +132,19 @@ gtd_recode <- gtd_2 %>%
                                              "21" = "nonstate_target",  #utilities*
                                              "22" = "state_target"      #violent political parties
                                              )) %>% 
+  
+  #create dummy columns to spread newly created observations into columns 
               dummy_cols(select_columns = "recode_target1") %>% 
+  #this is junk I don't need 
               select(-targtype1, -recode_target1, -recode_target1_13, -recode_target1_20) %>% 
               group_by(year, country) %>% 
+  #sum to account for n_kill per country per year
               mutate(terrorism_kill = sum(nkill)) %>% 
+  #sum to account for n_wound per country per year 
               mutate(terrorism_wound = sum(nwound)) %>% 
               mutate(nonstate_target = sum(recode_target1_nonstate_target)) %>% 
               mutate(state_target = sum(recode_target1_state_target)) %>% 
+  #deselect old pre-mutate variables 
               select(-nkill, -nwound, -recode_target1_nonstate_target, -recode_target1_state_target) %>% 
               distinct(country, year, .keep_all = TRUE)
 
@@ -140,42 +156,13 @@ gtd_recode <- gtd_2 %>%
 
 ```{r}
 
-# the countries don't match up. GTD has 205 unique country entries and our dataset so far has 217. 
+# Part II of keeping tabs on what countries don't match up. GTD has 205 unique country entries and our dataset so far has 217. 
 
-# extra_countries <- Data_Set6[!Data_Set6$country%in%gtd_2$country,]
+extra_countries <- Data_Set6[!Data_Set6$country%in%gtd_2$country,]
 
-# find <- extra_countries %>% select(country) %>% 
+find <- extra_countries %>% select(country) %>% 
        # group_by(country) %>% 
         #unique()
-
-
-
-# Rename the countries from gtd_2.
-
-# gtd_2 <- gtd_2 %>% 
-  #          mutate(country = recode(country, "Antigua and Barbuda" = "Antigua & Barbuda",
-   #                                     "Bosnia-Herzegovina" = "Bosnia & Herzegovina", 
-    #                                    "Congo (Kinshasa)" = "Congo - Kinshasa", 
-     #                                   "Congo (Brazzaville" = "Congo - Brazzaville",
-      #                                  "Ivory Coast" = "Côte d’Ivoire",
-       #                                 "Hong Kong" = "Hong Kong SAR China", 
-        #                                "St. Kitts and Nevis" = "St. Kitts & Nevis",
-         #                               #asterisk? 
-          #                              "Liechtenstein*" = "Liechtenstein", 
-           #                             "Marshall Islands*" = "Marshall Islands",
-            #                            #what? 
-             #                           "Macedonia" = "North Macedonia", 
-              #                          "Myanmar" = "Myanmar (Burma)", 
-               #                         "Mongolia*" = "Mongolia", 
-                #                        "Oman*" = "Oman", 
-                 #                       "East Timur" = "Timor-Leste", 
-                  #                      "Tonga*" = "Tonga",
-                   #                     "Trinidad and Tobago" = "Trinidad & Tobago",
-                    #                    "Tuvalu*" = "Tuvalu", 
-                     #                   "Virgin Islands (U.S.)*" = "U.S. Virgin Islands",
-                      #                  "Greenland*" = "Greenland"
-                       #                 ))
-
 
 # Not included in GTD but included in Data_Set6 AFTER rename:
 
@@ -183,25 +170,9 @@ gtd_recode <- gtd_2 %>%
 
 ```
 
-
 ```{r}
 
-# extra_countries_reverse <- gtd_2[!gtd_2$country%in%Data_Set6$country,]
-
-# these are countries in the gtd dataset not in Data_Set6: 
-
-# find_reverse <- extra_countries_reverse %>% select(country) %>% 
-  #      group_by(country) %>% 
-   #     unique()
-
-#find countries in Data_Set6 again 
-
-# cos_ds6 <- Data_Set6 %>% select("country") %>% group_by("counry") %>% unique()
-
-
-```
-
-```{r}
+#The naming convention seemed better at the time, but this is Cian's data + Polity + my recode of GTD data. 
 
 three_point_five <- merge(x = third_draft_polity, y = gtd_recode, by = c("country", "year"), all = TRUE)
 
@@ -213,7 +184,7 @@ write <- write_csv(three_point_five, path = "Raw_Data_Liz/three_point_five.csv")
 
 ```{r}
 
-# UCPD conflict data 
+# UCPD/PRIO conflict data. Codebook in GitHub. 
 
 conflict <- read_csv("Raw_Data_liz/ucdp-prio-acd-201.csv")
 
@@ -221,15 +192,17 @@ conflict <- read_csv("Raw_Data_liz/ucdp-prio-acd-201.csv")
 
 ```{r}
 
+# These are the conflict indicators. 
+
 conflict_2 <- conflict %>% 
               select('location',
                      'year',
                      'intensity_level', 
                      'type_of_conflict') %>% 
-  #to get rid of dyads. 
+  # To get rid of dyads. 
               filter(type_of_conflict != "2") %>% 
               rename("country" = "location") %>% 
-  #TRUE/TRUE just to sum more easily later. No value in TRUE/TRUE. 
+  # TRUE/TRUE just to sum more easily later. No value in TRUE/TRUE. 
               mutate(recode_intensity = recode_factor(intensity_level,
                                                       "1" = "TRUE",
                                                       "2" = "TRUE")) %>%
@@ -238,13 +211,11 @@ conflict_2 <- conflict %>%
               group_by(country, year) %>% 
               summarise(n_conflict = sum(n_conflict))
 
-  
-
 ```
 
 ```{r}
 
-# write CSV for conflict predictors 
+# Cian's data + Polity + GTD + UCPD
 
 fourth_draft_data <- merge(x = three_point_five, y = conflict_2, by = c("country", "year"), all = TRUE)
 
@@ -252,7 +223,7 @@ fourth_draft_data <- merge(x = three_point_five, y = conflict_2, by = c("country
 
 ```{r}
 
-#rename problem countries 
+# Rename countries to make data line up. The World Bank data doesn't contain any historic countries. For example, North and South Vietnam are just coded as Vietnam in that dataset. Since this data represent the most consistent data we have, we pretty much have to continue this convention. 
 
 rename_fourth_data <- fourth_draft_data %>% 
                       mutate(country = recode(country,
@@ -317,17 +288,19 @@ find <- ex_co %>% select(country) %>%
         group_by(country) %>% 
         unique()
 
-view(rename_fourth_data %>% 
-       filter(country == "Yemen")) %>% 
-  filter(year == "1964")
+# Spot check
 
-
+v <- view(rename_fourth_data %>% 
+     filter(country == "Yemen")) %>% 
+     filter(year == "1964")
 
 ```
 
 ```{r}
 
-# remove countries
+# Remove countries that we either can't reconcile with the World Bank dataset. A lot of these problem countries are from GTD. For example, I'm removing Soviet Union because data aren't available to geolocate present-day countries to migrate those observations. However, it only appears in GTD so we're not really losing a lot. 
+
+# We're also removing territories that aren't independent. Except for Palestine, we kept that one because it's a rich source of conflict data and also because we wanted to. 
 
 rename_remove_fourth_data <- rename_fourth_data %>% 
                              filter(!country %in% c("Congo",
@@ -372,16 +345,13 @@ rename_remove_fourth_data <- rename_fourth_data %>%
 
 unique(rename_remove_fourth_data$country)
 
-#  "Serbia"                        "Serbia (Yugoslavia)"              Yugoslavia
-#Czechoslovakia
-
 ```
 
 
 
 ```{r}
 
-#write fourth dataset 
+# Here's the data with counries cleaned up. 
 
 fourth_final <- write_csv(rename_remove_fourth_data, path = "Raw_Data_Liz/fourth_final.csv")
 
@@ -405,34 +375,20 @@ check_1 <- ff_2 %>% filter(country == "Sudan") #looks ok
 
 check_2 <- ff_2 %>% filter(country == "Yemen") #looks ok 
 
-check_3 <- ff_2 %>% filter(country == "Germany") #n_conflicts are all 0 
-
-```
-
-```{r}
-
-#fix Czechoslovakia and Sudans: 
-
+check_3 <- ff_2 %>% filter(country == "Germany") #looks ok 
 
 ```
 
 
 ```{r}
 
-# write fifth dataset
+# Fourth dataset, but cleaner. 
 
 fifth <- write_csv(ff_2, path = "Raw_Data_Liz/fifth.csv")
 
 ```
 
 ```{r}
-
-# In Excel: deleted South Sudan pre 2011
-# Deleted 4 instances of Serbia (Yugoslavia) bc no meaningful data
-# Combined data for Czechia and Slovakia between 1960-1992 into Czechoslovakia; deleted those observations before 1992
-# Last observation for Czechoslovakia is 1992; other two start at 1993 
-
-# read in changes: 
 
 six <- read_csv("Raw_Data_Liz/sixth.csv", col_types = cols(
   .default = col_double(),
@@ -446,14 +402,20 @@ six <- read_csv("Raw_Data_Liz/sixth.csv", col_types = cols(
 six_2 <- six %>% 
          filter(year >= 1960)
 
+# In Excel because it was just easier: Deleted South Sudan pre 2011
+# Deleted 4 instances of Serbia (Yugoslavia) bc no meaningful data
+# Combined data for Czechia and Slovakia between 1960-1992 into Czechoslovakia; deleted those observations before 1992
+# Last observation for Czechoslovakia is 1992; other two start at 1993 
 
 ```
 
 ```{r}
 
-# write sixth dataset
+# write sixth dataset with changes
 
 sixth_final <- write_csv(six_2, path = "Raw_Data_Liz/sixth_final.csv")
+
+# Realize that Cian did the same thing and saved it as Final_Data, so I copy-pasted my changes into that dataset. Final_Data is our final data. 
 
 ```
 
