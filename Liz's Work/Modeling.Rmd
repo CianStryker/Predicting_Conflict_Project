@@ -16,7 +16,6 @@ library(tidyverse)
 
 ```{r}
 
-
 data <- read_csv("Raw_Data_Liz/Final_Data.csv", col_types = cols(
   .default = col_double(),
   country = col_character(),
@@ -30,7 +29,9 @@ data <- as.data.frame(data)
 
 ```{r}
 
-# create authority_challenge variable from ranges in change outside of -20:20 
+# The idea was to have all data cleaning done before we started modeling, but imputation is drawing attention to things that need to be taken care of. So this is more data cleaning to make the imputation work and make sense. 
+
+# Create authority_challenge variable from ranges in change outside of -20:20. This is important because (1) change needs to be numeric between -20:20 for the imputation to work, but a factor for the other values; and (2) the values outside of -20:20 represent things that are fundamentally different than in the numeric range. It's just better to have a separate indicator. 
 
 data$change <- as.factor(data$change)
 
@@ -48,7 +49,7 @@ data_2 <- data %>%
 
 data_2$authority_challenge <- ifelse(data_2$authority_challenge =="1", 1, 0)
 
-# clean up change column to take out values now represented in authority_challenge 
+# Clean up change column to take out values now represented in authority_challenge 
 
 data_3 <- data_2 %>% 
           mutate(change = recode_factor(change,
@@ -62,18 +63,15 @@ data_3 <- data_2 %>%
                                       "98" = "NA", 
                                       "99" = "NA"))
 
-
-
 ```
 
 
 ```{r}
 
-# remove :SF (now represented in authority_challenge)
-        #fragment (not coded before 2000)
-        #iso2c (represented in country and annoying for imputation)
-        #regtrans (now represented in authority_challenge)
-        #
+# Remove: SF (now represented in authority_challenge)
+         #fragment (not coded before 2000)
+         #iso2c (represented in country and annoying for imputation)
+         #regtrans (now represented in authority_challenge)
 
 data_3 <- data_3 %>% 
           select(-iso2c, -sf, -fragment, -regtrans)
@@ -81,8 +79,9 @@ data_3 <- data_3 %>%
 ```
 
 
-
 ```{r}
+
+# Manually change variables for imputation: 
 
 data_3$change <- as.numeric(data_3$change)
 
@@ -120,7 +119,6 @@ data_3$polity2 <- as.factor(data_3$polity2)
 
 data_3$n_conflict <- as.numeric(data_3$n_conflict)
 
-
 ```
 
 ```{r}
@@ -131,16 +129,18 @@ p_missing <- unlist(lapply(data_3, function(x) sum(is.na(x))))/nrow(data_3)
 
 sort(p_missing[p_missing > 0], decreasing = TRUE)
 
-# almost half of our variables are missing > 50% of their observations... 
+# 11/35 variables are missing > 50% of their observations.  
 
 ```
 
 
 ```{r, cache=TRUE}
 
-#Impute
+# Impute
 
 set.seed(2020)
+
+# Dummy_cols are necessary because we can't impute factors with more than 53 levels. Obviously our country variable had way more than that. 
 
 dummy_data <- data_3 %>% 
               dummy_cols(select_columns = c("country"),
@@ -152,10 +152,11 @@ imp_mf <- missForest(dummy_data, variablewise = TRUE, verbose = TRUE, ntree = 10
 
 imp_mf$OOBerror
 
-# here's the data frame
-
+# Here's the data frame
 
 imp_df <- imp_mf$ximp
+
+# Runtime for imputation was ~2 hours. Write as .csv so I never have to run this again. 
 
 imputed_data <- write_csv(imp_df, path = "Raw_Data_Liz/imputed_data.csv")
 
@@ -169,7 +170,7 @@ rfd <- read_csv("Raw_Data_Liz/imputed_data.csv", col_types = cols(
   continent = col_character()
 ))
 
-#split data
+# Split data for Random Forest model. 
 
 set.seed(2020)
 
@@ -180,9 +181,7 @@ training <- which(!(seq(nrow(rfd)) %in% test))
 
 test_data <- data.frame(rfd[test, ])
 
-# training_data <- data.frame(rfd[training, ])
-
-# random forest can't run chr variables 
+# Random forest can't run chr variables? 
 
 rfd$continent <- as.factor(rfd$continent)
 
@@ -191,7 +190,7 @@ rfd$continent <- as.factor(rfd$continent)
 
 ```{r, cache = TRUE}
 
-# random forest
+# Random Forest
 
 # mtry is defaulted at sqrt of p 
 
@@ -208,7 +207,7 @@ bag.rfd$importance
 
 set.seed(2020)
   
-# predict: 
+# Predict: 
   
 rfd.test <- rfd[-training ,"n_conflict"]
 
@@ -218,6 +217,8 @@ rfd.test <- rfd[-training ,"n_conflict"]
 
 yhat.bag <- predict(bag.rfd, newdata = data.frame(rfd[-training, ]))
 
+# R is throwing weird errors at me when I try to find the MSE, so here's a get-around: 
+
 xx <- (yhat.bag - rfd.test)^2
 
 xx <- as.data.frame(xx)
@@ -226,22 +227,28 @@ xx <- as.numeric(xx$n_conflict)
 
 MSE <- mean(xx)
 
-# MSE = [1] 0.01598933 lol 
+# MSE = [1] 0.01598933 
 
 ```
 
 ```{r}
 
-# accuracy 
+# Accuracy 
 
 # rfd.test = test
 # yhat.bag = predictions from RF model 
 
+# Make DF of test and predictions. 
+
 check <- data.frame(rfd.test, yhat.bag)
+
+# Make occurance of conflict binary. 
 
 check$real_conflict <- ifelse(check$n_conflict >=1, 1, 0)
 
 check$yhat.bag <- ifelse(check$yhat.bag >= 1, 1, 0)
+
+# Take the difference and count our cases of false negatives, accurate predictions, or false positives. 
 
 final_check_rf <- check %>%
   mutate(diff = real_conflict - yhat.bag) %>%
@@ -257,6 +264,8 @@ final_check_rf$n <- as.numeric(final_check_rf$n)
 
 
 ```{r}
+
+# Clean for table. 
 
 labels <- c("False Positive", "Accurate", "False Negative")
 
@@ -278,7 +287,7 @@ final_check_rf$Percent <- as.numeric(final_check_rf$Percent)
 
 ```{r}
 
-# make table
+# Make table
 
 final_check_rf %>%
   gt() %>%
