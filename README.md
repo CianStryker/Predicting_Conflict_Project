@@ -6,4 +6,4 @@ This project was conducted for "API 222: Machine Learning and Data Analytics", t
 
 # Repo Guide
 
-- This project's work was split between Liz and myself and so different aspects of the code can be found in our respective working files. Each of us handled half of the data cleaning and gathering. We also split the modelling between the two of us. 
+This project's work was split between Liz and myself and so different aspects of the code can be found in our respective working files. Each of us handled half of the data cleaning and gathering. We also split the modelling between the two of us. 
