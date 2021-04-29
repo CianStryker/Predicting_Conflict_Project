@@ -83,6 +83,8 @@ training_data <- data.frame(data[training, ])
 
 ```{r, Linear Regression}
 
+set.seed(202)
+
 # Pretty simply linear regression using all the predictors available, which
 # isn't too computationally hard. 
 
@@ -116,6 +118,8 @@ predictions_data <- data.frame(predictions)
 ```
 
 ```{r, Accuracy Checking}
+
+set.seed(202)
 
 # Just combined the test data with the predictions. 
 
@@ -203,6 +207,9 @@ gtsave(linear_results, "Images/Linear_Results.png")
 
 ```{r Ridge Regression}
 
+set.seed(202)
+
+
 # Here I'm using cross validation to see the best lambda
 # to use in our ridge regression. 
 
@@ -224,6 +231,8 @@ ridge_model <- glmnet(x = as.matrix(training_data[,1:299]),
 
 
 ```{r Ridge Predictions}
+
+set.seed(202)
 
 # Here I'm just producing the predicted conflict values from the ridge regression. 
 
@@ -250,6 +259,8 @@ ridge_predictions_data <- ridge_predictions_data %>%
 ```
 
 ```{r Ridge Accuracy Check}
+
+set.seed(202)
 
 # Same code from the linear regression but now for the ridge 
 # regression. Again I'm only concerned with whether the model 
